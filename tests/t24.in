@@ -1,0 +1,7 @@
+void main {
+	int a;
+	string b;
+	string c;
+	a = 2;
+	b = c = "string test";
+}
