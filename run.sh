@@ -1,12 +1,28 @@
 #!/bin/bash
-mkdir -p out
-mkdir -p report
-cd ./tests
-prefix="t" ;
-dirlist=(`ls ${prefix}*.in`) ;
 OUTPUT_DIRECTORY="out/"
 TEST_DIRECTORY="tests/"
 REPORT_DIRECTORY="report/"
+
+echo "Usage: 
+./run.sh [testdirectory]
+(default test_directory: tests/)
+Please end test_directory with /"
+
+OUTPUT_DIRECTORY="out/"
+TEST_DIRECTORY="tests/"
+REPORT_DIRECTORY="report/"
+
+if [ "$#" -eq 1 ]; then
+    TEST_DIRECTORY=$1
+fi
+
+echo $TEST_DIRECTORY
+mkdir -p out
+mkdir -p report
+cd $TEST_DIRECTORY
+prefix="t" ;
+dirlist=(`ls ${prefix}*.in`) ;
+
 NUMBER_OF_PASSED=0
 NUMBER_OF_FAILED=0
 cd ../
@@ -17,9 +33,9 @@ do
     report_filename="$filename.report.txt"
     echo "Running Test $filename -------------------------------------"
     if command -v python3; then
-        python3 main.py -i $filelist -o $output_filename
+        python3 main.py -i "$TEST_DIRECTORY$filelist" -o $output_filename
     else
-        python main.py -i $filelist -o $output_filename
+        python main.py -i "$TEST_DIRECTORY$filelist" -o $output_filename
     fi
     if [ $? -eq 0 ]; then
         echo "Code Executed Successfuly!"

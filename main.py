@@ -125,8 +125,9 @@ def main(argv):
 		debug_main(inputfile)
 		return
 
+	
 	code = ""
-	with open("tests/" + inputfile, "r") as input_file:
+	with open(inputfile, "r") as input_file:
 		code = input_file.read()
 	
 	output_file = open("out/" + outputfile, "w")

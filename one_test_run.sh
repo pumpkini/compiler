@@ -1,17 +1,37 @@
 #!/bin/bash
-if [ "$#" -ne 1 ]; then
-	echo "usage: . one_test_run.sh [test_number]"
-	return
+if [ "$#" -eq 0 ]; then
+	echo "Usage: 
+    ./one_test_run.sh test_directory test_number
+    ./one_test_run.sh test_number 
+    (default test_directory: tests/)
+    Please end test_directory with /"
+	exit 1
 fi
-mkdir -p out
-mkdir -p report
-cd ./tests
-num=`printf "%02d" $1`
-prefix="t" ;
-dirlist=(`ls ${prefix}${num}*.in`) ;
+
 OUTPUT_DIRECTORY="out/"
 TEST_DIRECTORY="tests/"
 REPORT_DIRECTORY="report/"
+num=1
+
+if [ "$#" -eq 1 ]; then
+    num=`printf "%02d" $1`
+fi
+
+
+if [ "$#" -eq 2 ]; then
+    TEST_DIRECTORY=$1
+    num=`printf "%02d" $2`
+    echo $2
+    echo $num
+fi
+
+mkdir -p out
+mkdir -p report
+cd $TEST_DIRECTORY
+
+prefix="t" ;
+dirlist=(`ls ${prefix}${num}*.in`) ;
+
 NUMBER_OF_PASSED=0
 NUMBER_OF_FAILED=0
 cd ../
@@ -22,9 +42,9 @@ do
     report_filename="$filename.report.txt"
     echo "Running Test $filename -------------------------------------"
     if command -v python3; then
-        python3 main.py -i $filelist -o $output_filename
+        python3 main.py -i "$TEST_DIRECTORY$filelist" -o $output_filename
     else
-        python main.py -i $filelist -o $output_filename
+        python main.py -i "$TEST_DIRECTORY$filelist" -o $output_filename
     fi
     if [ $? -eq 0 ]; then
         echo "Code Executed Successfuly!"
