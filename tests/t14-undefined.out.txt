@@ -1,2 +1,0 @@
-T_ID hello
-UNDEFINED_TOKEN
