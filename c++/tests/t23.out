@@ -1,0 +1,11 @@
+int
+T_ID inta
+T_ID aint
+T_ID ainta
+T_ID int2
+T_INTLITERAL 2
+int
+T_INTLITERAL 2
+T_ID inta
+T_INTLITERAL 2
+T_ID aint

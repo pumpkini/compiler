@@ -1,0 +1,36 @@
+int
+T_ID f
+(
+int
+T_ID n
+)
+{
+return
+T_ID n
+*
+T_ID n
+;
+}
+void
+T_ID main
+(
+)
+{
+int
+T_ID a
+;
+T_ID a
+=
+T_INTLITERAL 10
+;
+Print
+(
+T_ID a
+*
+T_ID f
+(
+T_ID a
+)
+)
+;
+}

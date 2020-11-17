@@ -1,0 +1,23 @@
+void
+T_ID main
+{
+int
+T_ID a
+;
+string
+T_ID b
+;
+string
+T_ID c
+;
+T_ID a
+=
+T_INTLITERAL 2
+;
+T_ID b
+=
+T_ID c
+=
+T_STRINGLITERAL "string test"
+;
+}
