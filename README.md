@@ -1,5 +1,14 @@
 # Compiler project
 
+## Install lark
+```
+pip3 install lark-parser --upgrade
+or maybe :-?
+pip install lark-parser --upgrade
+```
+source: https://github.com/lark-parser/lark
+doc: https://lark-parser.readthedocs.io/en/latest/index.html
+
 ## Run all tests:
 ```
 ./run.sh [testdirectory]
