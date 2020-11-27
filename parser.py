@@ -27,9 +27,6 @@ def debug_main(code):
 if __name__ == "__main__":
     # text = input()
     text = """ 
-    Parent f() {
-   Child ch;
-   return ch;
-}
+    a = b
     """
     print(parser.parse(text).pretty())

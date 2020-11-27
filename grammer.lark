@@ -1,7 +1,7 @@
 
 //TODOS
 
-?start: program
+?start: program 
 
 program: decl+
 
@@ -27,7 +27,7 @@ function_decl: type IDENT "(" formals ")" statement_block
 formals: variable+ ","
     |
 
-class_decl: CLASS IDENT "<" EXTENDS IDENT ">" "<" IMPLEMENTS IDENT+ "," ">" "{" field* "}"
+class_decl: CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT+ ",")? "{" field* "}"
 
 field: access_mode variable_decl
     | access_mode function_decl
@@ -44,7 +44,7 @@ prototype: type IDENT "(" formals ")" ";"
 
 statement_block: "{" variable_decl* statement* "}"
 
-statement: "<" expr ">" ";"
+statement: expr? ";"
     | if_stmt
     | while_stmt
     | for_stmt
@@ -60,7 +60,7 @@ while_stmt: WHILE "(" expr ")" statement
 
 for_stmt: FOR "(" expr? ";" expr ";" expr? ")" statement
 
-return_stmt: RETURN expr ";"
+return_stmt: RETURN expr? ";"
 
 break_stmt: BREAK ";"
 
