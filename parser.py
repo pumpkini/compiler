@@ -19,5 +19,9 @@ def parse(code):
 
 if __name__ == "__main__":
     # text = input()
-    text = """ //comment """
+    text = """ //comment
+    /*another comment 
+    huray
+    */ 
+    """
     print(parser.parse(text).pretty())
