@@ -72,3 +72,8 @@ DOUBLECONSTANT: "double"
 BOOLCONSTANT: "bool"
 STRINGCONSTANT: "string"
 NULL : "null"
+
+
+%import common.WS
+
+%ignore WS
