@@ -1,7 +1,7 @@
 start: T_BOOLEANLITERAL
     | T_ID
 
-T_BOOLEANLITERAL: /\b"false"|"true"\b/
+T_BOOLEANLITERAL: /\b(false|true)\b/
 
 T_ID: /[a-zA-Z]\w+/									        	
 
