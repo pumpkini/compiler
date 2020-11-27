@@ -10,6 +10,7 @@ grammar_file = grammer_path / 'tokens.lark'
 
 parser = Lark.open(grammar_file, rel_to=__file__, parser="lalr")
 
+
 def parse(code):
     try:
         parser.parse(code)
@@ -17,7 +18,8 @@ def parse(code):
     except ParseError:
         return False
 
+
 if __name__ == "__main__":
     # text = input()
-    text = """ //comment """
+    text = """ /*comment*/ """
     print(parser.parse(text).pretty())
