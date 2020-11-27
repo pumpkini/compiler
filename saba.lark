@@ -1,0 +1,64 @@
+// InterfaceDecl ::= interface ident {Prototype∗}
+// P rototype ::= T ype ident(F ormals); | void ident(F ormals); StmtBlock ::= {V ariableDecl∗ Stmt∗}
+// Stmt ::= < Expr >; | IfStmt | WhileStmt | ForStmt |
+// BreakStmt | ContinueStmt | ReturnStmt | PrintStmt | StmtBlock
+// IfStmt ::= if (Expr) Stmt < else Stmt > W hileStmt ::= while (Expr) Stmt
+// F orStmt ::= for (< Expr >; Expr; < Expr >) Stmt ReturnStmt ::= return < Expr >;
+// BreakStmt ::= break; ContinueStmt ::= continue;
+
+start: statement
+    | interface_decl
+    | prototype
+
+interface_decl: INTERFACE IDENT "{" prototype* "}"
+
+prototype: type IDENT "(" formals ")" ";"
+    | VOID IDENT "(" formals ")" ";"
+
+statement_block: "{" variable_decl* statement* "}"
+
+statement: "<" expr ">" ";"
+    | if_stmt
+    | while_stmt
+    | for_stmt
+    | return_stmt
+    | break_stmt
+    | continue_stmt
+    | print_stmt
+    | statement_block
+
+if_stmt: IF "(" expr ")" statement (ELSE statement)?
+
+while_stmt: WHILE "(" expr ")" statement
+
+for_stmt: FOR "(" expr? ";" expr ";" expr? ")" statement
+
+return_stmt: RETURN expr ";"
+
+break_stmt: BREAK ";"
+
+continue_stmt: CONTINUE ";"
+
+IDENT: "T_ID"
+WHILE: "while"
+// PAREN_OPEN: "("
+// PAREN_CLOSE: ")"
+IF: "if"
+ELSE: "else"
+FOR: "for"
+VOID: "void"
+RETURN: "return"
+BREAK: "break"
+CONTINUE: "continue"
+INTERFACE: "interface"
+// SEMMICOLON: ";"
+
+variable_decl: "vd"
+print_stmt: "ps" //TODO
+expr: "ex"  //TODO
+type: "ty"
+formals: "fo"
+
+%import common.WS
+
+%ignore WS
