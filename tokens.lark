@@ -1,5 +1,4 @@
-start: SKIP
-    | T_ID
+start: T_ID
 
 T_BOOLEANLITERAL: /\b(false|true)\b/
 
@@ -7,11 +6,11 @@ T_ID: /[a-zA-Z]\w*/
 
 T_DOUBLELITERAL: /[-+]?\d+\.\d*(?:[eE][-+]?\d+)?/							
 
-T_INTLITERAL:   (?:0x|0X)[0-9a-fA-F]+)|([0-9]+)
+T_INTLITERAL:   /(0x|0X)[0-9a-fA-F]+|([0-9]+)/
 
 //COMMENT: (/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|(//.*)  		
 
-// OP_PUNCTUATION: ==|>=|<=|<|>|\+|\-|\*|\/|\%|\=|!=|\|\||\&\&|!|;|,|\.|\[|\]|\(|\)|\{|\}
+//OP_PUNCTUATION: ==|>=|<=|<|>|\+|\-|\*|\/|\%|\=|!=|\|\||\&\&|!|;|,|\.|\[|\]|\(|\)|\{|\}
 
 T_STRINGLITERAL: /\"[^\n\"]*\"/
 
