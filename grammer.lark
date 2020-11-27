@@ -1,6 +1,3 @@
-
-//TODOS
-
 ?start: program 
 
 program: decl+
@@ -167,6 +164,8 @@ COMMENT: /\/\/[^\n]*/
     | "/*" /.*?/s "*/"
 
 // MISMATCH: /./
+
+//OP_PUNCTUATION: ==|>=|<=|<|>|\+|\-|\*|\/|\%|\=|!=|\|\||\&\&|!|;|,|\.|\[|\]|\(|\)|\{|\}
 
 %import common.NEWLINE
 %import common.WS_INLINE

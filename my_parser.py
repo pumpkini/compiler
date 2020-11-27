@@ -20,13 +20,7 @@ def parse(code):
 
 
 def debug_main(code):
+    print("\n:::PARSER:::")
     print("~~~~~input:")
     print(code)
     print(parser.parse(code).pretty())
-
-if __name__ == "__main__":
-    # text = input()
-    text = """ 
-    a = b
-    """
-    print(parser.parse(text).pretty())

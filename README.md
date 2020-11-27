@@ -7,49 +7,52 @@ or maybe :-?
 pip install lark-parser --upgrade
 ```
 source: https://github.com/lark-parser/lark
+
 doc: https://lark-parser.readthedocs.io/en/latest/index.html
+ 
+ &nbsp;
 
 ## Run all tests:
+- End test_directory with /
+
+- Default test_directory: tests/
 ```
 ./run.sh [testdirectory]
 (default test_directory: tests/)
 ```
-*End test_directory with /*
-
-*Default test_directory: tests/*
 
  &nbsp;
 
 
 ## Run one test with diff:
 
+- End test_directory with /
+
+- Default test_directory: tests/
 ```
 ./one_test_run.sh test_number 
 ./one_test_run.sh test_directory test_number
 (default test_directory: tests/)
 ```
-*End test_directory with /*
 
-*Default test_directory: tests/*
+
+&nbsp;
+
+## Run main:
+```
+main.py -i <inputfile> -o <outputfile>
+```
 
 &nbsp;
 
 ## Run main in debug mode:
 - prints to standard output
 ```
-run scanner:
-main.py -d -s -i <inputfile>
-run parser:
-main.py -d -p -i <inputfile>
-(use can also use -sp)
+main.py -d [-s] [-p] -i <inputfile>
+
+options for debug mode:
+-s :	run scanner (use with -d)
+-p :	run parser (use with -d)
 ```
 
 &nbsp;
-
-## Structure:
-
-scanner.py contain `tokenize` function
-main.py call this `tokenize` function and tokenize the input file.
-
-
-*to be completed*

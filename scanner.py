@@ -82,6 +82,7 @@ def debug_main(code):
 	global debug
 	debug = True
 
+	print("\n:::SCANNER:::")
 	print("~~~input")
 	print(code)
 	try:

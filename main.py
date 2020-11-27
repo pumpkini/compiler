@@ -1,11 +1,18 @@
 import sys, getopt
-import re
 from collections import namedtuple
 import scanner
 import my_parser
 
+help_message = '''
+main.py -i <inputfile> -o <outputfile>
+main.py -d [-s] [-p] -i <inputfile>
 
-def only_scanner(code, output_file):
+options for debug mode:
+-s :	run scanner (use with -d)
+-p :	run parser (use with -d)
+'''
+
+def run_scanner(code, output_file):
 	err, tokens = scanner.tokenize(code)
 	for t in tokens:
 		if t.group == "OP_PUNCTUATION" or t.group == "KEYWORD":
@@ -19,26 +26,27 @@ def only_scanner(code, output_file):
 
 def main(argv):
 	debug = False 
-	run_scanner = False
-	run_parser = False
+	run_scanner_option = False
+	run_parser_option = False
+
 
 	inputfile = ''
 	outputfile = ''
 	try:
 		opts, args = getopt.getopt(argv,"dhpsi:o:",["ifile=","ofile="])
 	except getopt.GetoptError:
-		print ('main.py -i <inputfile> -o <outputfile>\nmain.py -d [-s] [-p] -i <inputfile>')
+		print(help_message)
 		sys.exit(2)
 
 	for opt, arg in opts:
 		if opt == '-d':
 			debug = True
 		if opt == '-s':
-			run_scanner = True
+			run_scanner_option = True
 		if opt == '-p':
-			run_parser = True
+			run_parser_option = True
 		if opt == '-h':
-			print ('main.py -i <inputfile> -o <outputfile>\nmain.py -d [-s] [-p] -i <inputfile>')
+			print (help_message)
 			sys.exit()
 		elif opt in ("-i", "--ifile"):
 			inputfile = arg
@@ -50,15 +58,18 @@ def main(argv):
 		code = input_file.read()
 	
 	if debug:
-		if run_scanner:
+		if run_scanner_option:
 			scanner.debug_main(code)
-		if run_parser:
+		if run_parser_option:
 			my_parser.debug_main(code)
 		return
-
+	
 	output_file = open("out/" + outputfile, "w")
+
+	#phase1
 	# only_scanner(code, output_file)
 
+	#phase2
 	can_parse = my_parser.parse(code)
 	if can_parse:
 		output_file.write("OK")
