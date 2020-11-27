@@ -1,18 +1,14 @@
 import logging
-from lark import Lark, logger
+from lark import Lark, logger, __file__ as lark_file
 
 logger.setLevel(logging.DEBUG)
 
-grammar = '''
-    start: breakstmt start
-        | continuestmt start
-        |
-    breakstmt: "break;"
-    continuestmt: "continue;"
+from pathlib import Path
 
-    %import common.WS
-    %ignore WS
-'''
-parser = Lark(grammar, parser='lalr', debug=True)
+grammer_path = Path(__file__).parent
+grammar_file = grammer_path / 'grammer.lark'
 
-print(parser.parse('break;continue;continue;break;'))
+parser = Lark.open(grammar_file, rel_to=__file__, parser="lalr")
+
+if __name__ == "__main__":
+	print(parser.parse('{"saba":"good"}'))
