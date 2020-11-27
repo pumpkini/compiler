@@ -1,0 +1,3 @@
+string : ESCAPED_STRING
+
+%import common.ESCAPED_STRING
