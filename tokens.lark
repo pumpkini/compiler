@@ -8,3 +8,8 @@ T_STRINGLITERAL          :      r'\"[^\n\"]*\"'       											# String
 NEWLINE        		     :      r'\n'          													# Line endings
 SKIP                   	 :	    r'[ \t\v\f]+'     												# Skip over spaces and tabs
 MISMATCH   	             :	    r'.'           													# Any other character
+
+
+%import common.WS
+
+%ignore WS
