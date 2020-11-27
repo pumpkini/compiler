@@ -18,7 +18,6 @@ doc: https://lark-parser.readthedocs.io/en/latest/index.html
 - Default test_directory: tests/
 ```
 ./run.sh [testdirectory]
-(default test_directory: tests/)
 ```
 
  &nbsp;
@@ -32,7 +31,6 @@ doc: https://lark-parser.readthedocs.io/en/latest/index.html
 ```
 ./one_test_run.sh test_number 
 ./one_test_run.sh test_directory test_number
-(default test_directory: tests/)
 ```
 
 
