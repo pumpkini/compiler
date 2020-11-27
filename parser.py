@@ -19,6 +19,5 @@ def parse(code):
 
 if __name__ == "__main__":
     # text = input()
-    text = """
-    """
+    text = """ "boba" """
     print(parser.parse(text).pretty())
