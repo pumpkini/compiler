@@ -31,7 +31,7 @@ keywords = (
 "ReadInteger",
 "ReadLine",
 "dtoi",
-"itos",
+"itod",
 "btoi",
 "itob",
 "private",

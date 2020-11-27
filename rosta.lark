@@ -1,0 +1,74 @@
+?start: value
+
+?value: print_stmt
+        | expr
+        | l_value
+        | call
+        | actuals
+        | constant
+        
+
+
+print_stmt: "print"(actuals)";"
+expr: l_value "=" expr
+        | constant
+        | l_value
+        | THIS
+        | call
+        | "(" expr ")"
+        | expr "+" expr
+        | expr "-" expr
+        | expr "*" expr
+        | expr "/" expr
+        | expr "%" expr
+        | "-" expr
+        | expr "<" expr
+        | expr "<=" expr
+        | expr ">" expr
+        | expr ">=" expr
+        | expr "==" expr
+        | expr "!+" expr
+        | expr "&&" expr
+        | expr "||" expr
+        | "!" expr
+        | READINTEGER"()"
+        | READLINE"()"
+        | "new "IDENT
+        | NEWARRAY"("expr","TYPE")"
+        | ITOD"("expr")"
+        | DTOI"("expr")"
+        | ITOB"("expr")"
+        | BTOI"("expr")"
+
+l_value: IDENT
+            |expr"."IDENT
+            |expr"["expr"]"
+
+Call: IDENT"("actuals")"
+        |expr"."IDENT"("actuals")"
+
+
+actuals: expr+","
+    |""
+
+constant: INTCONSTANT
+    |DOUBLECONSTANT
+    |BOOLCONSTANT
+    |STRINGCONSTANT
+    |NULL
+
+THIS: "this"
+READINTEGER: "ReadInteger"
+RREADLINE : "readLine"
+IDENT : "int" , "double" , "bool" , "string" , "void"
+NEWARRAY : "NewArray"
+TYPE : "int" , "double", "string" , "bool"
+ITOD : "itod"
+DTOI : "dtoi"
+ITOB : "itob"
+BTOI : "btoi"
+INTCONSTANT: "int"
+DOUBLECONSTANT: "double"
+BOOLCONSTANT: "bool"
+STRINGCONSTANT: "string"
+NULL : "null"
