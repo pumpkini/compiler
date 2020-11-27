@@ -54,14 +54,17 @@ def main(argv):
 		if run_scanner:
 			scanner.debug_main(code)
 		if run_parser:
-			print(parser.parse(code))
+			parser.debug_main(code)
 		return
 
 	output_file = open("out/" + outputfile, "w")
 	# only_scanner(code, output_file)
 
-	result = parser.parse(code)
-	print(result)
+	can_parse = parser.parse(code)
+	if can_parse:
+		output_file.write("OK")
+	else:
+		output_file.write("Syntax Error")
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

@@ -1,12 +1,5 @@
 
 //TODOS
-INTCONSTANT: "1" 
-DOUBLECONSTANT: "1.2"
-BOOLCONSTANT: "true"
-STRINGCONSTANT: "blah"
-IDENT: "T_ID"
-
-
 
 ?start: program
 
@@ -155,6 +148,29 @@ NULL : "null"
 NEW: "new"
 
 
-%import common.WS
+//T_INTLITERAL
+INTCONSTANT: /(0x|0X)[0-9a-fA-F]+|([0-9]+)/
 
-%ignore WS
+//T_BOOLEANLITERAL
+DOUBLECONSTANT: /[-+]?\d+\.\d*(?:[eE][-+]?\d+)?/
+
+//T_BOOLEANLITERAL
+BOOLCONSTANT:  /\b(false|true)\b/
+
+//T_STRINGLITERAL
+STRINGCONSTANT:  /\"[^\n\"]*\"/
+
+//T_ID
+IDENT: /[a-zA-Z]\w*/
+
+COMMENT: /\/\/[^\n]*/
+    | "/*" /.*?/s "*/"
+
+// MISMATCH: /./
+
+%import common.NEWLINE
+%import common.WS_INLINE
+
+%ignore WS_INLINE
+%ignore NEWLINE
+%ignore COMMENT

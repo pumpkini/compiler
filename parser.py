@@ -6,7 +6,7 @@ logger.setLevel(logging.DEBUG)
 from pathlib import Path
 
 grammer_path = Path(__file__).parent
-grammar_file = grammer_path / 'tokens.lark'
+grammar_file = grammer_path / 'grammer.lark'
 
 parser = Lark.open(grammar_file, rel_to=__file__, parser="lalr")
 
@@ -19,15 +19,17 @@ def parse(code):
         return False
 
 
+def debug_main(code):
+    print("~~~~~input:")
+    print(code)
+    print(parser.parse(code).pretty())
+
 if __name__ == "__main__":
     # text = input()
-<<<<<<< HEAD
-    text = """ //comment
-    /*another comment 
-    huray
-    */ 
+    text = """ 
+    Parent f() {
+   Child ch;
+   return ch;
+}
     """
-=======
-    text = """ /*comment*/ """
->>>>>>> 553e8834cdb479877fd26514004aca89ae123614
     print(parser.parse(text).pretty())
