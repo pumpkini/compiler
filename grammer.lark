@@ -24,7 +24,7 @@ type.2: INT
 function_decl: type IDENT "(" formals ")" statement_block
     | VOID IDENT "(" formals ")" statement_block
 
-formals: variable+ ","
+formals: (variable",")* variable
     |
 
 class_decl: CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT+ ",")? "{" field* "}"
