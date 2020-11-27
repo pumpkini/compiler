@@ -1,10 +1,10 @@
-T_BOOLEANLITERAL: (false|true)\b'),           							 			# Boolean
-T_ID',       	    [a-zA-Z]\w*'),    										# Identifiers
-T_DOUBLELITERAL', r'[-+]?\d+\.\d*(?:[eE][-+]?\d+)?'), 								# f
-T_INTLITERAL',	r'((?:0x|0X)[0-9a-fA-F]+)|([0-9]+)'),  								# Integer or 
-COMMENT',       	r'(/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|(//.*)'),   
-OP_PUNCTUATION',	r'==|>=|<=|<|>|\+|\-|\*|\/|\%|\=|!=|\|\||\&\&|!|;|,|\.|\[|\]|\(|\)|\{|\}'), 
-T_STRINGLITERAL', r'\"[^\n\"]*\"'),        					
-NEWLINE',  		r'\n'),           													# Line endings
-SKIP',     		r'[ \t\v\f]+'),      												# Skip over spaces and tabs
-MISMATCH', 		r'.'),   
+T_BOOLEANLITERAL         :      r'(false|true)\b'    							 		    	# Boolean
+T_ID          	         :	    r'[a-zA-Z]\w*'    									        	# Identifiers
+T_DOUBLELITERAL          :      r'[-+]?\d+\.\d*(?:[eE][-+]?\d+)?'								# floating number
+T_INTLITERAL             : 	    r'((?:0x|0X)[0-9a-fA-F]+)|([0-9]+)' 							# Integer or decimal number
+COMMENT                  :      r'(/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|(//.*)'      		# COMMENT
+OP_PUNCTUATION           :      r'==|>=|<=|<|>|\+|\-|\*|\/|\%|\=|!=|\|\||\&\&|!|;|,|\.|\[|\]|\(|\)|\{|\}' # OP and PUNCT
+T_STRINGLITERAL          :      r'\"[^\n\"]*\"'       											# String
+NEWLINE        		     :      r'\n'          													# Line endings
+SKIP                   	 :	    r'[ \t\v\f]+'     												# Skip over spaces and tabs
+MISMATCH   	             :	    r'.'           													# Any other character
