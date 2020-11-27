@@ -53,7 +53,7 @@ def main(argv):
 		if run_scanner:
 			scanner.debug_main(code)
 		if run_parser:
-			parser.debug_main(code)
+			my_parser.debug_main(code)
 		return
 
 	output_file = open("out/" + outputfile, "w")

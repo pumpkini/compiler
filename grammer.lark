@@ -14,7 +14,7 @@ variable_decl: variable ";"
 
 variable: type IDENT
 
-type: INT
+type.2: INT
     | DOUBLE
     | BOOL
     | STRING
