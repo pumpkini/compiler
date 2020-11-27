@@ -13,8 +13,13 @@ parser = Lark.open(grammar_file, rel_to=__file__, parser="lalr")
 if __name__ == "__main__":
     # text = input()
     text = """
-    {
-       <new T_ID>;
-    }
+string T_ID() {
+   return 1;
+}
+
+T_ID T_ID() {
+   T_ID T_ID;
+   return T_ID;
+ }
     """
     print(parser.parse(text).pretty())

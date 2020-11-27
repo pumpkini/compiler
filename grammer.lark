@@ -1,17 +1,48 @@
 
 //TODOS
-variable_decl: "vd"
-type: "ty"
-formals: "fo"
-INTCONSTANT: "int" 
-DOUBLECONSTANT: "double"
-BOOLCONSTANT: "bool"
-STRINGCONSTANT: "string"
+INTCONSTANT: "1" 
+DOUBLECONSTANT: "1.2"
+BOOLCONSTANT: "true"
+STRINGCONSTANT: "blah"
 IDENT: "T_ID"
 
-start: statement
+
+
+?start: program
+
+program: decl+
+
+decl: variable_decl
+    | function_decl
+    | class_decl
     | interface_decl
-    | prototype
+
+variable_decl: variable ";"
+
+variable: type IDENT
+
+type: INT
+    | DOUBLE
+    | BOOL
+    | STRING
+    | IDENT
+    | type "[" "]"
+
+function_decl: type IDENT "(" formals ")" statement_block
+    | VOID IDENT "(" formals ")" statement_block
+
+formals: variable+ ","
+    |
+
+class_decl: CLASS IDENT "<" EXTENDS IDENT ">" "<" IMPLEMENTS IDENT+ "," ">" "{" field* "}"
+
+field: access_mode variable_decl
+    | access_mode function_decl
+
+access_mode: PRIVATE
+    | PROTECTED
+    | PUBLIC
+    |
 
 interface_decl: INTERFACE IDENT "{" prototype* "}"
 
@@ -68,7 +99,7 @@ expr: l_value "=" expr
         | READINTEGER "(" ")"
         | READLINE "(" ")"
         | NEW IDENT
-        | NEWARRAY "(" expr "," TYPE ")"
+        | NEWARRAY "(" expr "," type ")"
         | ITOD "(" expr ")"
         | DTOI "(" expr ")"
         | ITOB "(" expr ")"
@@ -92,6 +123,16 @@ constant: INTCONSTANT
     | NULL
 
 
+EXTENDS: "extends"
+IMPLEMENTS: "implements"
+CLASS: "class"
+INT: "int"
+BOOL: "bool"
+DOUBLE: "double"
+STRING : "string"
+PRIVATE: "private"
+PROTECTED: "protected"
+PUBLIC: "public"
 WHILE: "while"
 IF: "if"
 ELSE: "else"
@@ -106,10 +147,6 @@ THIS: "this"
 READINTEGER: "ReadInteger"
 READLINE : "readLine"
 NEWARRAY : "NewArray"
-TYPE : "int" 
-    | "double"
-    | "string" 
-    | "bool"
 ITOD : "itod"
 DTOI : "dtoi"
 ITOB : "itob"
