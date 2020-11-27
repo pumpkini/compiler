@@ -78,13 +78,9 @@ def tokenize(code):
 	return (None, tokens)
 
 
-def debug_main(inputfile):
+def debug_main(code):
 	global debug
 	debug = True
-	
-	code = ""
-	with open(inputfile, "r") as input_file:
-		code = input_file.read()
 
 	print("~~~input")
 	print(code)

@@ -37,7 +37,11 @@ doc: https://lark-parser.readthedocs.io/en/latest/index.html
 ## Run main in debug mode:
 - prints to standard output
 ```
-main.py -d -i <inputfile>
+run scanner:
+main.py -d -s -i <inputfile>
+run parser:
+main.py -d -p -i <inputfile>
+(use can also use -sp)
 ```
 
 &nbsp;
