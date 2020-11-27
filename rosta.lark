@@ -9,7 +9,7 @@
         
 
 
-print_stmt: "print"(actuals)";"
+print_stmt: PRINT (actuals)";"
 expr: l_value "=" expr
         | constant
         | l_value
@@ -44,7 +44,7 @@ l_value: IDENT
             |expr"."IDENT
             |expr"["expr"]"
 
-Call: IDENT"("actuals")"
+call: IDENT"("actuals")"
         |expr"."IDENT"("actuals")"
 
 
@@ -57,6 +57,7 @@ constant: INTCONSTANT
     |STRINGCONSTANT
     |NULL
 
+PRINT: "print"
 THIS: "this"
 READINTEGER: "ReadInteger"
 RREADLINE : "readLine"
