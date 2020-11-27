@@ -1,4 +1,4 @@
-start: T_BOOLEANLITERAL
+start: SKIP
     | T_ID
 
 T_BOOLEANLITERAL: /\b(false|true)\b/
@@ -11,13 +11,15 @@ T_DOUBLELITERAL: /[-+]?\d+\.\d*(?:[eE][-+]?\d+)?/
 
 // COMMENT: (/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|(//.*)  		
 
-// T_STRINGLITERAL: \"[^\n\"]*\"      											
+// OP_PUNCTUATION: ==|>=|<=|<|>|\+|\-|\*|\/|\%|\=|!=|\|\||\&\&|!|;|,|\.|\[|\]|\(|\)|\{|\}
 
-// NEWLINE: \n          													
+T_STRINGLITERAL: /\"[^\n\"]*\"/
 
-// SKIP: [ \t\v\f]+    												
+NEWLINE: /\n/
 
-// MISMATCH: .        									
+SKIP: /[ \t\v\f]+/
+
+MISMATCH: /./
 
 
 %import common.WS
