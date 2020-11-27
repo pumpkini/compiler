@@ -158,7 +158,3 @@ NEW: "new"
 %import common.WS
 
 %ignore WS
-
-%import common.WS
-
-%ignore WS
