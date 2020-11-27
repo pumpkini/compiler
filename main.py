@@ -2,8 +2,7 @@ import sys, getopt
 import re
 from collections import namedtuple
 import scanner
-import parser
-
+import my_parser
 
 
 def only_scanner(code, output_file):
@@ -60,11 +59,12 @@ def main(argv):
 	output_file = open("out/" + outputfile, "w")
 	# only_scanner(code, output_file)
 
-	can_parse = parser.parse(code)
+	can_parse = my_parser.parse(code)
 	if can_parse:
 		output_file.write("OK")
 	else:
 		output_file.write("Syntax Error")
+
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
