@@ -1,0 +1,6 @@
+void func(int t){
+	int f1(int m){
+		return 2*m;
+	}
+	return f1(t);
+}
