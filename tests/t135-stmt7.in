@@ -1,0 +1,7 @@
+void main () {
+    if ( expr ) break;
+    if ( expr ) a = b; else a = -b;
+    if ( expr ) a = b; else { }
+    if ( expr ) { } else type () ;
+    if ( expr ) { } else {}
+}

@@ -29,8 +29,8 @@ doc: https://lark-parser.readthedocs.io/en/latest/index.html
 
 - Default test_directory: tests/
 ```
-./one_test_run.sh test_number 
-./one_test_run.sh test_directory test_number
+./one_test_run.sh test_number(with leading zero) 
+./one_test_run.sh test_directory test_number(with leading zero)
 ```
 
 

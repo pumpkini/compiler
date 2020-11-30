@@ -14,15 +14,13 @@ REPORT_DIRECTORY="report/"
 num=1
 
 if [ "$#" -eq 1 ]; then
-    num=`printf "%02d" $1`
+    num=$1
 fi
 
 
 if [ "$#" -eq 2 ]; then
     TEST_DIRECTORY=$1
-    num=`printf "%02d" $2`
-    echo $2
-    echo $num
+    num=$2
 fi
 
 mkdir -p out
