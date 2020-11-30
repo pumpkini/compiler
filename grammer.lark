@@ -112,6 +112,36 @@ constant: INTCONSTANT
     | STRINGCONSTANT
     | NULL
 
+// keywords: EXTENDS
+//     | IMPLEMENTS
+//     | CLASS
+//     | INT
+//     | BOOL
+//     | DOUBLE
+//     | STRING 
+//     | PRIVATE
+//     | PROTECTED
+//     | PUBLIC
+//     | WHILE
+//     | IF
+//     | ELSE
+//     | FOR
+//     | VOID
+//     | RETURN
+//     | BREAK
+//     | CONTINUE
+//     | INTERFACE
+//     | PRINT
+//     | THIS
+//     | READINTEGER
+//     | READLINE
+//     | NEWARRAY
+//     | ITOD
+//     | DTOI
+//     | ITOB
+//     | BTOI
+//     | NULL
+//     | NEW
 
 EXTENDS: "extends"
 IMPLEMENTS: "implements"
@@ -158,7 +188,7 @@ BOOLCONSTANT:  /\b(false|true)\b/
 STRINGCONSTANT:  /\"[^\n\"]*\"/
 
 //T_ID
-IDENT: /[a-zA-Z]\w*/
+IDENT: /(?!(extends|implements|class|int|bool|double|string|private|protected|public|while|if|else|for|void|return|break|continue|interface|print|this|ReadInteger|readLine|NewArray|itod|dtoi|itob|btoi|null|new|true|false)\b)[a-zA-Z]\w*/
 
 COMMENT: /\/\/[^\n]*/
     | "/*" /.*?/s "*/"
