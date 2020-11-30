@@ -162,10 +162,10 @@ RETURN: "return"
 BREAK: "break"
 CONTINUE: "continue"
 INTERFACE: "interface"
-PRINT: "print"
+PRINT: "Print"
 THIS: "this"
 READINTEGER: "ReadInteger"
-READLINE : "readLine"
+READLINE : "ReadLine"
 NEWARRAY : "NewArray"
 ITOD : "itod"
 DTOI : "dtoi"
@@ -188,7 +188,7 @@ BOOLCONSTANT:  /\b(false|true)\b/
 STRINGCONSTANT:  /\"[^\n\"]*\"/
 
 //T_ID
-IDENT: /(?!(extends|implements|class|int|bool|double|string|private|protected|public|while|if|else|for|void|return|break|continue|interface|print|this|ReadInteger|readLine|NewArray|itod|dtoi|itob|btoi|null|new|true|false)\b)[a-zA-Z]\w*/
+IDENT: /(?!(extends|implements|class|int|bool|double|string|private|protected|public|while|if|else|for|void|return|break|continue|interface|Print|this|ReadInteger|ReadLine|NewArray|itod|dtoi|itob|btoi|null|new|true|false)\b)[a-zA-Z]\w*/
 
 COMMENT: /\/\/[^\n]*/
     | "/*" /.*?/s "*/"
