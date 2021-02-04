@@ -25,11 +25,23 @@ def main(argv):
 
 	input1_lines = []
 	input2_lines = []
+	back_str = ""
 	with open(inputfile1, "r") as input_file:
+		cntr = 0	
 		for line in input_file:
+			if cntr < 5 :
+				cntr += 1
+				continue
 			l = line.strip()
+			back_str += l
 			if l != "" :
-				input1_lines.append(line.strip())
+				input1_lines.append(line.strip())		
+		input_file.close()
+	
+	with open(inputfile1, "w") as input_file:
+		input_file.write(back_str)
+		input_file.close()
+
 
 	with open(inputfile2, "r") as input_file:
 		for line in input_file:
