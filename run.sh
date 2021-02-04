@@ -1,17 +1,17 @@
 #!/bin/bash
-echo " *** !SAG TOO WINDOWS! ***"
 OUTPUT_DIRECTORY="out/"
 TEST_DIRECTORY="tests/"
 REPORT_DIRECTORY="report/"
 SOURCE_DIRECTORY="src/"
+
 mkdir -p $OUTPUT_DIRECTORY
 mkdir -p $REPORT_DIRECTORY
+
 cd ./tests
+
 prefix="t" ;
 dirlist=(`ls ${prefix}*.d`) ;
-OUTPUT_DIRECTORY="out/"
-TEST_DIRECTORY="tests/"
-REPORT_DIRECTORY="report/"
+
 NUMBER_OF_PASSED=0
 NUMBER_OF_FAILED=0
 cd ../
@@ -22,11 +22,12 @@ do
     output_asm="$filename.s"
     program_input="$filename.in"
     report_filename="$filename.report.txt"
+
     echo "Running Test $filename -------------------------------------"
     if command -v python3; then
-        python3 main.py -i $filelist -o $output_asm
+        python3 "$SOURCE_DIRECTORY/main.py" -i "$TEST_DIRECTORY$filelist" -o "$OUTPUT_DIRECTORY$output_asm"
     else
-        python main.py -i $filelist -o $output_asm
+        python "$SOURCE_DIRECTORY/main.py" -i "$TEST_DIRECTORY$filelist" -o "$OUTPUT_DIRECTORY$output_asm"
     fi
     if [ $? -eq 0 ]; then
         echo "Code Compiled Successfuly!"

@@ -64,7 +64,7 @@ def main(argv):
 			my_parser.debug_main(code)
 		return
 	
-	output_file = open("out/" + outputfile, "w")
+	output_file = open(outputfile, "w")
 
 	#phase1
 	# only_scanner(code, output_file)
