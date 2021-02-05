@@ -26,8 +26,8 @@ formals: (variable",")* variable
 
 class_decl: CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT+ ",")? "{" field* "}"
 
-field: access_mode variable_decl
-    | access_mode function_decl
+field: access_mode variable_decl -> field_var
+    | access_mode function_decl -> field_func
 
 access_mode: PRIVATE
     | PROTECTED
@@ -65,35 +65,35 @@ continue_stmt: CONTINUE ";"
 
 print_stmt: PRINT (actuals)";"
 
-expr: l_value "=" expr
-        | constant
-        | l_value
-        | THIS
-        | call
-        | "(" expr ")"
-        | expr "+" expr
-        | expr "-" expr
-        | expr "*" expr
-        | expr "/" expr
-        | expr "%" expr
-        | "-" expr
-        | expr "<" expr
-        | expr "<=" expr
-        | expr ">" expr
-        | expr ">=" expr
-        | expr "==" expr
-        | expr "!=" expr
-        | expr "&&" expr
-        | expr "||" expr
-        | "!" expr
-        | READINTEGER "(" ")"
-        | READLINE "(" ")"
-        | NEW IDENT
-        | NEWARRAY "(" expr "," type ")"
-        | ITOD "(" expr ")"
-        | DTOI "(" expr ")"
-        | ITOB "(" expr ")"
-        | BTOI "(" expr ")"
+expr: l_value "=" expr -> expr_assign
+        | constant -> expr_constant
+        | l_value -> expr_l_value
+        | THIS -> expr_this
+        | call -> expr_call
+        | "(" expr ")" -> expr_parantheses
+        | expr "+" expr -> add
+        | expr "-" expr -> sub
+        | expr "*" expr -> mul
+        | expr "/" expr -> div
+        | expr "%" expr -> mod
+        | "-" expr -> neg
+        | expr "<" expr -> less
+        | expr "<=" expr -> less_equal
+        | expr ">" expr -> greater
+        | expr ">=" expr -> greater_equal
+        | expr "==" expr -> equal
+        | expr "!=" expr -> not_equal
+        | expr "&&" expr -> and
+        | expr "||" expr -> or
+        | "!" expr -> not
+        | READINTEGER "(" ")" -> read_integer
+        | READLINE "(" ")" -> read_line
+        | NEW IDENT -> new_ident
+        | NEWARRAY "(" expr "," type ")" -> new_array
+        | ITOD "(" expr ")" -> itod
+        | DTOI "(" expr ")" -> dtoi
+        | ITOB "(" expr ")" -> itob
+        | BTOI "(" expr ")" -> btoi
 
 l_value: IDENT
         | expr "." IDENT

@@ -6,9 +6,9 @@ logger.setLevel(logging.DEBUG)
 from pathlib import Path
 
 grammer_path = Path(__file__).parent
-grammar_file = grammer_path / 'grammer.lark'
+grammer_file = grammer_path / 'grammer.lark'
 
-parser = Lark.open(grammar_file, rel_to=__file__, parser="lalr")
+parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
 
 
 def parse(code):
@@ -23,4 +23,6 @@ def debug_main(code):
     print("\n:::PARSER:::")
     print("~~~~~input:")
     print(code)
-    print(parser.parse(code).pretty())
+    tree = parser.parse(code)
+    print(tree.pretty())
+    print(type(tree))
