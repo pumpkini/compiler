@@ -31,7 +31,7 @@ class Cgen(Interpreter):
 	def program(self, tree, *args, **kwargs):
 		print("hehehe")
 		
-	def while_stmt(self, tree):
+	def while_stmt(self, tree,*args, **kwargs):
 		code = '\t.text\n'
 		code += "loop:\t"
 		condition_code = self.visit(tree.children[0])
@@ -44,6 +44,21 @@ class Cgen(Interpreter):
 		code += "\n\tend:"
 		# code += TODO end 
 		return code
+	
+	def for_stmt(self,tree,*args, **kwargs):
+		code = '\t.text\n'
+		code += "loop:\t"
+		condition_code = self.visit(tree.children[0])
+		stmt_code = self.visit(tree.children[1])
+		code += condition_code
+		code += "\n\tj\tend"
+		code += "\nbody:\t"
+		code += stmt_code
+		code += "\n\tj\tloop"
+		code += "\n\tend:"
+		# code += TODO end 
+		return code
+
 
 	    
 
