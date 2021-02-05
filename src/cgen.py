@@ -1,8 +1,6 @@
-import sys, getopt
-
 import logging
-from lark import Lark, logger, __file__ as lark_file, ParseError
-from lark.visitors import Interpreter
+from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
+from lark.visitors import Interpreter, v_args
 
 logger.setLevel(logging.DEBUG)
 
@@ -14,15 +12,48 @@ grammer_file = grammer_path / 'grammer.lark'
 parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
 
 
-class CGEN(Interpreter):
-	def program(self, tree):
+class SymbolTable():
+	symbol_tables = []
+	def __init__(self, parent = None):
+		self.variables = {}
+		self.parent = None
+		SymbolTable.symbol_tables.append(self)
+
+
+class Cgen(Interpreter):
+	def visit(self, tree, *args,  **kwargs):
+		f = getattr(self, tree.data)
+		wrapper = getattr(f, 'visit_wrapper', None)
+		if wrapper is not None:
+			return f.visit_wrapper(f, tree.data, tree.children, tree.meta)
+		else:
+			return f(tree, *args,  **kwargs)
+
+	def visit_children(self, tree, *args,  **kwargs):
+		return [self.visit(child, *args, **kwargs) if isinstance(child, Tree) else child
+				for child in tree.children]
+
+	def __getattr__(self, name):
+		return self.__default__
+
+	def __default__(self, tree, *args,  **kwargs):
+		return self.visit_children(tree, *args,  **kwargs)
+
+
+	### Cgen methods
+	def program(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+		print(symbol_table)
+		print(symbol_table.variables)
 		print("hehehe")
 
 
 def generate_tac(code):
 	try:
 		tree = parser.parse(code)
-		CGEN().visit(tree)
+		root_symbol_table = SymbolTable()
+		Cgen().visit(tree,  symbol_table= root_symbol_table)
+		
 	except ParseError as e:
 		# TODO
 		pass
