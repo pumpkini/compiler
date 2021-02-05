@@ -46,6 +46,7 @@ class Cgen(Interpreter):
 		print("hehehe")
 
 	def decl(self,tree,*args, **kwargs):
+		code = ''
 		symbol_table = kwargs.get('symbol_table')
 		for decl in tree.children:
 			if decl.data == 'variable_decl' or decl.data == 'function_decl' or decl.data == 'class_decl':
