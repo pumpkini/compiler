@@ -45,6 +45,13 @@ class Cgen(Interpreter):
 		print(symbol_table.variables)
 		print("hehehe")
 
+	def decl(self,tree,*args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+		for decl in tree.children:
+			if decl.data == 'variable_decl' or decl.data == 'function_decl' or decl.data == 'class_decl':
+				code += self.visit(decl)
+		return code
+
 
 def generate_tac(code):
 	try:
