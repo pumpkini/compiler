@@ -32,9 +32,7 @@ class Cgen(Interpreter):
 	def visit_children(self, tree, *args,  **kwargs):
 		return [self.visit(child, *args, **kwargs) if isinstance(child, Tree) else child
 				for child in tree.children]
-
-	def __getattr__(self, name):
-		return self.__default__
+				
 
 	def __default__(self, tree, *args,  **kwargs):
 		return self.visit_children(tree, *args,  **kwargs)
