@@ -2,7 +2,7 @@
 
 program: decl+
 
-decl: variable_decl -> var_decl
+decl: variable_decl
     | function_decl
     | class_decl
     | interface_decl
