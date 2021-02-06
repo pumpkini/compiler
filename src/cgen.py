@@ -69,7 +69,7 @@ class Cgen(Interpreter):
 				type_ = type_,
 				arguments = formals
 		)
-		
+
 		statement_block = self.visit(tree.children[3])
 
 		# TODO check return type
