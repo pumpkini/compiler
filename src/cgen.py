@@ -144,14 +144,17 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t","\t")
 		return code
 	def add(self, tree, *args, **kwargs):
+		self.visit(tree.children[0], kwargs)
+		self.visit(tree.children[1], kwargs)
 		var1 = stack.pop()
 		var2 = stack.pop()
+		var3 = var1 + var2
 		code = f"""
 				li $t0, {var1}
 				li $t1, {var2}
 				add $t3, $t2, $t1 	
 				""".replace("\t\t\t\t","\t")
-		stack.append(var1 + var2)
+		stack.append(var3)
 		return code
 
 	def ident(self, tree, *args, **kwargs):
