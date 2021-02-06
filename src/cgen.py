@@ -2,7 +2,7 @@ import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
 
-from SymbolTable import SymbolTable, Variable
+from SymbolTable import Function, SymbolTable, Variable
 
 
 logger.setLevel(logging.DEBUG)
@@ -63,10 +63,18 @@ class Cgen(Interpreter):
 		print(type_)
 		func_name = tree.children[1].value
 		formals = self.visit(tree.children[2])
+
+		symbol_table.functions[func_name] = Function(
+				name = func_name,
+				type_ = type_,
+				arguments = formals
+		)
+		
 		statement_block = self.visit(tree.children[3])
 
 		# TODO check return type
 		# TODO do something with arguments
+		
 
 		code = f"""
 {func_name}:
