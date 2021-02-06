@@ -23,7 +23,7 @@ TYPE_SIZE = {
 }
 
 DATA_POINTER = 0
-
+stack = []
 
 class Cgen(Interpreter):
 	def visit(self, tree, *args, **kwargs):
@@ -128,10 +128,12 @@ class Cgen(Interpreter):
 		if not variable:
 			# TODO variable not found noooo
 			return
-
+		expr_value = stack.pop()
 		# TODO store result of expr in t0
-		code = f"	sw	$t0, {variable.address}($gp)"
-
+		code = f"""
+				li $t0, {expr_value}
+				sw	$t0, {variable.address}($gp) 	
+				""".replace("\t\t\t\t","\t")
 		return code
 
 	def ident(self, tree, *args, **kwargs):
