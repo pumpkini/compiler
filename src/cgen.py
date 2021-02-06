@@ -143,25 +143,21 @@ class Cgen(Interpreter):
 				sw	$t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		return code
+
+
 	def add(self, tree, *args, **kwargs):
 		self.visit(tree.children[0], kwargs)
 		self.visit(tree.children[1], kwargs)
 		var1 = stack.pop()
 		var2 = stack.pop()
-		var3 = var1 + var2
-		code = f"""
-				li $t0, {var1}
-				li $t1, {var2}
-				add $t3, $t2, $t1 	
-				""".replace("\t\t\t\t","\t")
-		stack.append(var3)
+		stack.append(var1 + var2)
 		return code
 
 	def ident(self, tree, *args, **kwargs):
 		return tree.children[0].value
 		
 	def constant(self, tree, *args, **kwargs):
-		stack.append(tree.children[0].value)
+		stack.append(int(tree.children[0].value))
 		return tree.children[0].value
 		
 	def print_stmt(self, tree, *args, **kwargs):
