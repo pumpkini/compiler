@@ -2,7 +2,7 @@ import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
 
-from SymbolTable import SymbolTable
+from SymbolTable import SymbolTable, Variable
 
 
 logger.setLevel(logging.DEBUG)
@@ -47,20 +47,76 @@ class Cgen(Interpreter):
 	
 	def function_decl(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
-		code = ''
-		code += ''
+
+		type_ = self.visit(tree.children[0])
+		func_name = tree.children[1].value
+		formals = self.visit(tree.children[2])
+		statement_block = self.visit(tree.children[3])
+
+		# TODO check return type
+		# TODO do something with arguments
+
+		code = f"""
+		{func_name}:
+			{statement_block}
+		""".replace("\n\t\t", "\n")
+
 		return code
 
+	def statement_block(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
 
-	    
+		new_symbol_table = SymbolTable(parent=symbol_table)
+
+		childrens_code = self.visit_children(tree, symbol_table = new_symbol_table)
+		code = '\n\t'.join(childrens_code)
+		return code
+
+	def variable(self, tree, *args, **kwargs):
+		type_ = self.visit(tree.children[0])
+		var_name = tree.children[1].value
+
+		# TODO do something (but what?)
+		return ""	
+
+	def expr_assign(self, tree, *args, **kwargs):
+		l_value = self.visit(tree.children[0], kwargs)
+		expr = self.visit(tree.children[1], kwargs)
+		
+		# TODO store new value for l_value
+		code = "expr assign"
+		return code
+
+	def ident(self, tree, *args, **kwargs):
+		return tree.children[0].value
+		
+	def constant(self, tree, *args, **kwargs):
+		return tree.children[0].value
+		
+	def print_stmt(self, tree, *args, **kwargs):
+		actuals = self.visit(tree.children[1])
+
+		## TODO print (or maybe another place)
+
+		code = "print"
+
+		return code
+
+	def actuals(self, tree, *args, **kwargs):
+		actuals = self.visit_children(tree, args, kwargs)
+		return actuals
+
+
+
+
 
 def generate_tac(code):
 	try:
 		tree = parser.parse(code)
 		print(tree.pretty())
 		root_symbol_table = SymbolTable()
-		Cgen().visit(tree,  symbol_table= root_symbol_table)
-		
+		mips_code = Cgen().visit(tree,  symbol_table= root_symbol_table)
+		return mips_code
 	except ParseError as e:
 		# TODO
 		print(e)
@@ -72,4 +128,6 @@ if __name__ == "__main__":
 	code = ""
 	with open(inputfile, "r") as input_file:
 		code = input_file.read()
-	generate_tac(code)
+	code = generate_tac(code)
+	print("#### code ")
+	print(code)

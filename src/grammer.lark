@@ -7,7 +7,7 @@ decl: variable_decl
     | class_decl
     | interface_decl
 
-variable_decl: variable ";"
+?variable_decl: variable ";"
 
 variable: type IDENT
 
@@ -16,12 +16,12 @@ type.2: INT
     | BOOL
     | STRING
     | IDENT
-    | type "[" "]"
+    | type "[" "]" -> array_type
 
 function_decl: type IDENT "(" formals ")" statement_block
     | VOID IDENT "(" formals ")" statement_block
 
-formals: (variable",")* variable
+formals: variable ("," variable)*
     |
 
 class_decl: CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT+ ",")? "{" field* "}"
@@ -41,7 +41,7 @@ prototype: type IDENT "(" formals ")" ";"
 
 statement_block: "{" variable_decl* statement* "}"
 
-statement: expr? ";"
+?statement: expr? ";"
     | if_stmt
     | while_stmt
     | for_stmt
@@ -63,14 +63,14 @@ break_stmt: BREAK ";"
 
 continue_stmt: CONTINUE ";"
 
-print_stmt: PRINT (actuals) ";"
+print_stmt: PRINT "(" actuals ")" ";"
 
-expr: l_value "=" expr -> expr_assign
-        | constant -> expr_constant
-        | l_value -> expr_l_value
-        | THIS -> expr_this
-        | call -> expr_call
-        | "(" expr ")" -> expr_parantheses
+?expr: l_value "=" expr -> expr_assign
+        | constant
+        | l_value
+        | THIS
+        | call
+        | "(" expr ")"
         | expr "+" expr -> add
         | expr "-" expr -> sub
         | expr "*" expr -> mul
@@ -95,8 +95,8 @@ expr: l_value "=" expr -> expr_assign
         | ITOB "(" expr ")" -> itob
         | BTOI "(" expr ")" -> btoi
 
-l_value: IDENT
-        | expr "." IDENT
+l_value: IDENT -> ident
+        | expr "." IDENT 
         | expr "[" expr "]"
 
 call: IDENT "(" actuals ")"
