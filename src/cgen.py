@@ -63,15 +63,18 @@ class Cgen(Interpreter):
 		print(type_)
 		func_name = tree.children[1].value
 		formals = self.visit(tree.children[2])
-		statement_block = self.visit(tree.children[3])
 
-		# TODO check return type
-		# TODO do something with arguments
 		symbol_table.functions[func_name] = Function(
 				name = func_name,
 				type_ = type_,
 				arguments = formals
 		)
+		
+		statement_block = self.visit(tree.children[3])
+
+		# TODO check return type
+		# TODO do something with arguments
+		
 
 		code = f"""
 {func_name}:
