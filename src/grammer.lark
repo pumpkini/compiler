@@ -63,7 +63,7 @@ break_stmt: BREAK ";"
 
 continue_stmt: CONTINUE ";"
 
-print_stmt: PRINT (actuals)";"
+print_stmt: PRINT (actuals) ";"
 
 expr: l_value "=" expr -> expr_assign
         | constant -> expr_constant
@@ -103,7 +103,7 @@ call: IDENT "(" actuals ")"
         | expr "." IDENT "(" actuals ")"
 
 
-actuals: expr+ ","
+actuals: expr ("," expr)*
     | 
 
 constant: INTCONSTANT

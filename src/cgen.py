@@ -1,6 +1,9 @@
 import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
-from lark.visitors import Interpreter, v_args
+from lark.visitors import Interpreter
+
+from SymbolTable import SymbolTable
+
 
 logger.setLevel(logging.DEBUG)
 
@@ -27,11 +30,12 @@ class Cgen(Interpreter):
 	def __default__(self, tree, *args, **kwargs):
 		return self.visit_children(tree, *args, **kwargs)
 
+
     ### Cgen methods
 	def program(self, tree, *args, **kwargs):
 		print("hehehe")
 		
-	def while_stmt(self, tree,*args, **kwargs):
+	def while_stmt(self, tree, *args, **kwargs):
 		code = '\t.text\n'
 		code += "loop:\t"
 		condition_code = self.visit(tree.children[0])
@@ -45,7 +49,7 @@ class Cgen(Interpreter):
 		# code += TODO end 
 		return code
 	
-	def for_stmt(self,tree,*args, **kwargs):
+	def for_stmt(self, tree, *args, **kwargs):
 		code = '\t.text\n'
 		code += "loop:\t"
 		condition_code = self.visit(tree.children[0])
@@ -62,21 +66,22 @@ class Cgen(Interpreter):
 
 	    
 
-# def generate_tac(code):
-# 	try:
-# 		tree = parser.parse(code)
-# 		# root_symbol_table = SymbolTable()
-# 		# Cgen().visit(tree,  symbol_table= root_symbol_table)
+def generate_tac(code):
+	try:
+		tree = parser.parse(code)
+		print(tree.pretty())
+		root_symbol_table = SymbolTable()
+		Cgen().visit(tree,  symbol_table= root_symbol_table)
 		
-# 	except ParseError as e:
-# 		# TODO
-# 		pass
+	except ParseError as e:
+		# TODO
+		print(e)
+		pass
 	
 
-# if __name__ == "__main__":
-# 	inputfile = '../tmp/in1.d'
-# 	code = ""
-# 	with open(inputfile, "r") as input_file:
-# 		code = input_file.read()
-
-# 	generate_tac(code)
+if __name__ == "__main__":
+	inputfile = 'example.d'
+	code = ""
+	with open(inputfile, "r") as input_file:
+		code = input_file.read()
+	generate_tac(code)
