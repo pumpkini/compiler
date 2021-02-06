@@ -66,7 +66,7 @@ continue_stmt: CONTINUE ";"
 print_stmt: PRINT "(" actuals ")" ";"
 
 ?expr: l_value "=" expr -> expr_assign
-        | constant
+        | constant -> constant
         | l_value
         | THIS
         | call
