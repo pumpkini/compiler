@@ -129,7 +129,7 @@ class Cgen(Interpreter):
 			# TODO variable not found noooo
 			return
 		expr_value = stack.pop()
-		# TODO store result of expr in t0
+		# TODO check type of var and expr
 		code = f"""
 				li $t0, {expr_value}
 				sw	$t0, {variable.address}($gp) 	
