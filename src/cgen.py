@@ -14,6 +14,17 @@ grammer_file = grammer_path / 'grammer.lark'
 
 parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
 
+
+TYPE_SIZE = {
+	'int': 4,
+	'double': 8,
+	'bool': 4,
+	'string': 4
+}
+
+DATA_POINTER = 0
+
+
 class Cgen(Interpreter):
 	def visit(self, tree, *args, **kwargs):
 		f = getattr(self, tree.data)
@@ -49,6 +60,7 @@ class Cgen(Interpreter):
 		symbol_table = kwargs.get('symbol_table')
 
 		type_ = self.visit(tree.children[0])
+		print(type_)
 		func_name = tree.children[1].value
 		formals = self.visit(tree.children[2])
 		statement_block = self.visit(tree.children[3])
@@ -57,9 +69,9 @@ class Cgen(Interpreter):
 		# TODO do something with arguments
 
 		code = f"""
-		{func_name}:
-			{statement_block}
-		""".replace("\n\t\t", "\n")
+{func_name}:
+	{statement_block}
+		"""
 
 		return code
 
@@ -69,22 +81,57 @@ class Cgen(Interpreter):
 		new_symbol_table = SymbolTable(parent=symbol_table)
 
 		childrens_code = self.visit_children(tree, symbol_table = new_symbol_table)
-		code = '\n\t'.join(childrens_code)
+		code = '\n'.join(childrens_code)
 		return code
 
 	def variable(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+
 		type_ = self.visit(tree.children[0])
 		var_name = tree.children[1].value
 
-		# TODO do something (but what?)
+		size = 4
+		if type_ in TYPE_SIZE:
+			size = TYPE_SIZE[type_]
+		else:
+			raise Exception(f"NOOOOO {type_} is not in TYPE_SIZE")
+
+		
+		global DATA_POINTER
+
+		if var_name in symbol_table.variables:
+			### TODO var_name already exist in this scope. error?
+			pass
+
+
+		symbol_table.variables[var_name] = Variable(
+				name=var_name,
+				type_=type_,
+				address=DATA_POINTER,
+				size=size
+				)
+
+		print(DATA_POINTER, size)
+			
+		DATA_POINTER += size
+		
 		return ""	
 
 	def expr_assign(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+
 		l_value = self.visit(tree.children[0], kwargs)
 		expr = self.visit(tree.children[1], kwargs)
 		
-		# TODO store new value for l_value
-		code = "expr assign"
+		variable = symbol_table.find(l_value)
+		
+		if not variable:
+			# TODO variable not found noooo
+			return
+
+		# TODO store result of expr in t0
+		code = f"	sw	$t0, {variable.address}($gp)"
+
 		return code
 
 	def ident(self, tree, *args, **kwargs):
@@ -94,11 +141,37 @@ class Cgen(Interpreter):
 		return tree.children[0].value
 		
 	def print_stmt(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+
 		actuals = self.visit(tree.children[1])
 
 		## TODO print (or maybe another place)
 
-		code = "print"
+		code = ""
+		for actual in actuals:
+			# TODO this only work if actual is a single symbol :(
+			
+			variable = symbol_table.find(actual)
+		
+			if not variable:
+				# TODO variable not found noooo
+				return
+				
+			var_reg = "$a0"
+			sys_call_code = 1
+			if variable.type_ == 'int':
+				sys_call_code = 1
+			elif variable.type == 'double':
+				sys_call_code = 3
+				var_reg = "$f12"
+			elif variable.type == 'string': # TODO not sure
+				sys_call_code = 4
+				
+			code += f"""
+				li $v0, {sys_call_code} 	
+				lw {var_reg}, {variable.address}($gp)
+				syscall
+				""".replace("\t\t\t\t","\t")
 
 		return code
 
@@ -106,6 +179,8 @@ class Cgen(Interpreter):
 		actuals = self.visit_children(tree, args, kwargs)
 		return actuals
 
+	def type(self, tree, *args, **kwargs):
+		return tree.children[0].value
 
 
 

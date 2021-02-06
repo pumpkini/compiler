@@ -1,8 +1,9 @@
 class Variable():
-    def __init__(self, name, type_ = None, address = None):
+    def __init__(self, name, type_ = None, address = None, size = 0):
         self.name = name
         self.type_ = type_
         self.address = address
+        self.size = size
     
 class SymbolTable():
     symbol_tables = []
