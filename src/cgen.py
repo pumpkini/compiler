@@ -34,9 +34,7 @@ class Cgen(Interpreter):
     ### Cgen methods
 	def program(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
-		code = ''
-		code += self.visit_children(self, tree, symbol_table = symbol_table)
-		print("hehehe")
+		code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
 		return code
 		
 	def	decl(self, tree, *args, **kwargs):
