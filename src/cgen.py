@@ -140,6 +140,7 @@ class Cgen(Interpreter):
 		return tree.children[0].value
 		
 	def constant(self, tree, *args, **kwargs):
+		stack.append(tree.children[0].value)
 		return tree.children[0].value
 		
 	def print_stmt(self, tree, *args, **kwargs):
