@@ -33,34 +33,24 @@ class Cgen(Interpreter):
 
     ### Cgen methods
 	def program(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+		code = ''
+		code += self.visit_children(self, tree, symbol_table = symbol_table)
 		print("hehehe")
+		return code
 		
-	def while_stmt(self, tree, *args, **kwargs):
-		code = '\t.text\n'
-		code += "loop:\t"
-		condition_code = self.visit(tree.children[0])
-		stmt_code = self.visit(tree.children[1])
-		code += condition_code
-		code += "\n\tj\tend"
-		code += "\nbody:\t"
-		code += stmt_code
-		code += "\n\tj\tloop"
-		code += "\n\tend:"
-		# code += TODO end 
+	def	decl(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+		code = ''
+		for decl in tree.children:
+			if decl.data == 'function_decl':
+				code += self.visit(decl,tree, symbol_table = symbol_table)
 		return code
 	
-	def for_stmt(self, tree, *args, **kwargs):
-		code = '\t.text\n'
-		code += "loop:\t"
-		condition_code = self.visit(tree.children[0])
-		stmt_code = self.visit(tree.children[1])
-		code += condition_code
-		code += "\n\tj\tend"
-		code += "\nbody:\t"
-		code += stmt_code
-		code += "\n\tj\tloop"
-		code += "\n\tend:"
-		# code += TODO end 
+	def function_decl(self, tree, *args, **kwargs):
+		symbol_table = kwargs.get('symbol_table')
+		code = ''
+		code += ''
 		return code
 
 
