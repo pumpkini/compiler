@@ -127,17 +127,17 @@ class Cgen(Interpreter):
 
 	def expr_assign(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
-
+		code = ''
 		l_value = self.visit(tree.children[0], kwargs)
-		expr = self.visit(tree.children[1], kwargs)
-		
+		code += self.visit(tree.children[1], kwargs)
 		variable = symbol_table.find(l_value)
 		
 		if not variable:
 			# TODO variable not found noooo
 			return
 		# TODO check type of var and expr
-		code = f"""
+		code += f"""
+				THIS IS store
 				li $t0, 0($sp)
 				sw	$t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
@@ -145,9 +145,11 @@ class Cgen(Interpreter):
 
 
 	def add(self, tree, *args, **kwargs):
-		self.visit(tree.children[0], kwargs)
-		self.visit(tree.children[1], kwargs)
-		code = f"""
+		code = ''
+		code += self.visit(tree.children[0], kwargs)
+		code += self.visit(tree.children[1], kwargs)
+		code += f"""
+				THIS IS add
 				li $t0, 0($sp)
 				li $t1, 4($sp)
 				add $t2, $t1, $t0
