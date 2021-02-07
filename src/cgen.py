@@ -136,10 +136,9 @@ class Cgen(Interpreter):
 		if not variable:
 			# TODO variable not found noooo
 			return
-		expr_value = stack.pop()
 		# TODO check type of var and expr
 		code = f"""
-				li $t0, {expr_value}
+				li $t0, 0($sp)
 				sw	$t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		return code
@@ -148,17 +147,27 @@ class Cgen(Interpreter):
 	def add(self, tree, *args, **kwargs):
 		self.visit(tree.children[0], kwargs)
 		self.visit(tree.children[1], kwargs)
-		var1 = stack.pop()
-		var2 = stack.pop()
-		stack.append(var1 + var2)
+		code = f"""
+				li $t0, 0($sp)
+				li $t1, 4($sp)
+				add $t2, $t1, $t0
+				sw $t2, 4($sp) 
+				addi $sp, $sp, 4
+				""".replace("\t\t\t\t", "\t")
 		return code
 
 	def ident(self, tree, *args, **kwargs):
 		return tree.children[0].value
 		
 	def constant(self, tree, *args, **kwargs):
+		code = f"""
+				li $t0, {int(tree.children[0].value)}
+				subi $sp, $sp, 4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t\t","\t")
+		# TODO store type somewhere
 		stack.append(int(tree.children[0].value)) #TODO for other types
-		return tree.children[0].value
+		return code
 		
 	def print_stmt(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
