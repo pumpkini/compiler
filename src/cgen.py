@@ -159,7 +159,16 @@ class Cgen(Interpreter):
 		return code
 
 	def ident(self, tree, *args, **kwargs):
-		return tree.children[0].value
+		symbol_table = kwargs.get('symbol_table')
+		l_ident = self.visit(tree.children[0], kwargs)
+		id = symbol_table.find(l_ident)
+		code = f"""
+				THIS IS ident
+				lw	$t0, {id.address}($gp)
+				subi $sp, $sp, 4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t\t", "\t")
+		return code
 		
 	def constant(self, tree, *args, **kwargs):
 		code = f"""
