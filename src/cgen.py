@@ -1,6 +1,7 @@
 import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
+from decimal import Decimal
 
 from SymbolTable import Function, SymbolTable, Variable, Type
 
@@ -191,11 +192,17 @@ class Cgen(Interpreter):
 			return ''
 
 		# TODO check type of var and expr
-
-		code += f"""
+		if variable.type_.name == 'int':
+			code += f"""
 				### store
 				lw $t0, 0($sp)
 				sw $t0, {variable.address}($gp) 	
+				""".replace("\t\t\t\t","\t")
+		elif variable.type_.name == 'double':
+			code += f"""
+				### store
+				l.d $f2, 0($sp)
+				s.d $f2, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		
 		stack.pop()
@@ -226,12 +233,13 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### add
-				l.d $f1, 0($sp)
-				l.d $f2, 4($sp)
-				add.d $f3, $f2, $f1
-				s.d $f3, 4($sp) 
+				l.d $f2, 0($sp)
+				l.d $f4, 4($sp)
+				add.d $f6, $f4, $f2
+				s.d $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
+			# TODO what is wrong with thisss
 		
 		elif var1.type_.name == "string":
 			# TODO
@@ -240,7 +248,7 @@ class Cgen(Interpreter):
 			# TODO
 			pass
 		else:
-			raise SemanticError
+			raise SemanticError('types are not suitable for \'add\'', line=tree.meta.line, col=tree.meta.column)
 
 
 
@@ -255,8 +263,8 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			# TODO nooo what to do now
-			raise SemanticError
+			print(var1.type_.name, var2.type_.name)
+			raise SemanticError('var1 type != var2 type in \'sub\'', line=tree.meta.line, col=tree.meta.column)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -271,21 +279,15 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### sub
-				l.d $f1, 0($sp)
-				l.d $f2, 4($sp)
-				sub.d $f3, $f2, $f1
-				s.d $f3, 4($sp) 
+				l.d $f2, 0($sp)
+				l.d $f4, 4($sp)
+				sub.d $f6, $f4, $f2
+				s.d $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
 
-		elif var1.type_.name == "string":
-			# TODO
-			pass
-		elif  var1.type_.name == "array":
-			# TODO
-			pass
 		else:
-			raise SemanticError
+			raise SemanticError('types are not suitable for \'sub\'', line=tree.meta.line, col=tree.meta.column)
 
 
 		stack.append(Variable(type_=var1.type_))
@@ -298,12 +300,20 @@ class Cgen(Interpreter):
 		variable = symbol_table.find_var(var_name)
 
 		stack.append(variable)
-		code = f"""
-				### ident
-				lw $t0, {variable.address}($gp)
-				addi $sp, $sp, -4
-				sw $t0, 0($sp)
-				""".replace("\t\t\t\t", "\t")
+		if variable.type_.name == "int":
+			code = f"""
+					### ident
+					lw $t0, {variable.address}($gp)
+					addi $sp, $sp, -4
+					sw $t0, 0($sp)
+					""".replace("\t\t\t\t\t", "\t")
+		elif variable.type_.name == "double":
+			code = f"""
+					### ident
+					l.d $f2, {variable.address}($gp)
+					addi $sp, $sp, -4
+					s.d $f2, 0($sp)
+					""".replace("\t\t\t\t\t", "\t")
 		return code
 		
 
@@ -313,19 +323,33 @@ class Cgen(Interpreter):
 		constant_type = tree.children[0].type
 		value = "????"
 		type_ = "????"
+
 		if constant_type == 'INTCONSTANT':
 			value = int(tree.children[0].value)
 			type_ = Type.get_type_by_name('int')
-
-		stack.append(Variable(type_=type_))
-
-		code = f"""
+			code = f"""
 				### constant
 				li $t0, {value}
 				addi $sp, $sp, -4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t\t","\t")
-		
+
+		if constant_type == 'DOUBLECONSTANT':
+			value = tree.children[0].value.lower()
+			type_ = Type.get_type_by_name('double')
+			if 'e' in value:
+				# TODO
+				pass
+			else:
+				value = Decimal(value)
+				code = f"""
+					### constant
+					li.d $f2, {value}
+					addi $sp, $sp, -4
+					s.d $f2, 0($sp)
+					""".replace("\t\t\t\t\t","\t")
+
+		stack.append(Variable(type_=type_))
 		return code
 		
 	def print_stmt(self, tree, *args, **kwargs):
@@ -362,6 +386,16 @@ class Cgen(Interpreter):
 					jal print_bool
 					move $ra, $s0 	#restore ra
 					""".replace("\t\t\t\t","")	
+
+			if var.type_.name == 'double':
+				code += f"""
+					### print double	
+					li $v0, 3		# sys call for print double 
+					l.d $f2, {sp_offset}($sp)
+					syscall
+					""".replace("\t\t\t\t\t","\t")
+
+
 			sp_offset -= 4
 
 			# TODO other type
