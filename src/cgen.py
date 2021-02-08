@@ -591,6 +591,23 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=Type.get_type_by_name('string')))
 		return code
 
+	def itod(self, tree, *args, **kwargs):
+		code = self.visit(tree.children[1], **kwargs)
+		var1 = stack.pop()
+
+		if var1.type_.name != 'int':
+			raise SemanticError('variable type is not integer in \'itod\'', tree=tree)
+
+		code += f"""
+				.text:
+					itod:
+						la $t0, 0($sp)
+						mtc1 $t0, $f0
+						cvt.d.w $f0, $f0
+						s.d $f0, 0($sp)
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=Type.get_type_by_name('double')))
+		return code
 	def if_stmt(self, tree, *args, **kwargs):
 		global labels_count
 		symbol_table = kwargs.get('symbol_table')
