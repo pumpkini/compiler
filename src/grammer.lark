@@ -96,8 +96,8 @@ print_stmt: PRINT "(" actuals ")" ";"
         | BTOI "(" expr ")" -> btoi
 
 l_value: IDENT -> ident
-        | expr "." IDENT 
-        | expr "[" expr "]"
+        | expr "." IDENT -> expr_ident
+        | expr "[" expr "]" -> expr_expr
 
 call: IDENT "(" actuals ")"
         | expr "." IDENT "(" actuals ")"

@@ -30,7 +30,7 @@ class Cgen(Interpreter):
 		f = getattr(self, tree.data)
 		wrapper = getattr(f, 'visit_wrapper', None)
 		if wrapper is not None:
-			return f.visit_wrapper(f, tree.data, tree.children, tree.meta)
+			return f.visit_wrapper(f, tree.data, tree.children, tree.meta, *args, **kwargs)
 		else:
 			return f(tree, *args, **kwargs)
 	
@@ -59,10 +59,9 @@ class Cgen(Interpreter):
 	def function_decl(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
-		type_ = self.visit(tree.children[0])
-		print(type_)
+		type_ = self.visit(tree.children[0],**kwargs)
 		func_name = tree.children[1].value
-		formals = self.visit(tree.children[2])
+		formals = self.visit(tree.children[2],**kwargs)
 
 		symbol_table.functions[func_name] = Function(
 				name = func_name,
@@ -70,10 +69,11 @@ class Cgen(Interpreter):
 				arguments = formals
 		)
 
-		statement_block = self.visit(tree.children[3])
+		statement_block = self.visit(tree.children[3],**kwargs)
 
 		# TODO check return type
 		# TODO do something with arguments
+		# TODO save registers, do sth with fp ra
 		
 
 		code = f"""
@@ -89,13 +89,17 @@ class Cgen(Interpreter):
 		new_symbol_table = SymbolTable(parent=symbol_table)
 
 		childrens_code = self.visit_children(tree, symbol_table = new_symbol_table)
+		
+		childrens_code = [c if c else '' for c in childrens_code]
+
 		code = '\n'.join(childrens_code)
+
 		return code
 
 	def variable(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
-		type_ = self.visit(tree.children[0])
+		type_ = self.visit(tree.children[0],**kwargs)
 		var_name = tree.children[1].value
 
 		size = 4
@@ -118,26 +122,27 @@ class Cgen(Interpreter):
 				address=DATA_POINTER,
 				size=size
 				)
-
-		print(DATA_POINTER, size)
 			
 		DATA_POINTER += size
 		
 		return ""	
 
 	def expr_assign(self, tree, *args, **kwargs):
+		# l_value = expr
 		symbol_table = kwargs.get('symbol_table')
+
 		code = ''
-		l_value = self.visit(tree.children[0], kwargs)
-		code += self.visit(tree.children[1], kwargs)
-		variable = symbol_table.find(l_value)
-		
+		variable = self.visit(tree.children[0],**kwargs, return_var=True)
+		code += self.visit(tree.children[1],**kwargs)
+
 		if not variable:
 			# TODO variable not found noooo
-			return
+			return ''
+
 		# TODO check type of var and expr
+
 		code += f"""
-				THIS IS store
+				### store
 				li $t0, 0($sp)
 				sw	$t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
@@ -146,10 +151,10 @@ class Cgen(Interpreter):
 
 	def add(self, tree, *args, **kwargs):
 		code = ''
-		code += self.visit(tree.children[0], kwargs)
-		code += self.visit(tree.children[1], kwargs)
+		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[1],**kwargs)
 		code += f"""
-				THIS IS add
+				### add
 				li $t0, 0($sp)
 				li $t1, 4($sp)
 				add $t2, $t1, $t0
@@ -158,32 +163,46 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 		return code
 
-	def ident(self, tree, *args, **kwargs):
+	def ident(self, tree, return_var=False, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
-		l_ident = self.visit(tree.children[0], kwargs)
-		id = symbol_table.find(l_ident)
+
+		var_name = tree.children[0].value
+		variable = symbol_table.find_var(var_name)
+
+		if return_var:
+			return variable
+		
 		code = f"""
-				THIS IS ident
-				lw	$t0, {id.address}($gp)
+				### ident
+				lw	$t0, {variable.address}($gp)
 				subi $sp, $sp, 4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t\t", "\t")
 		return code
 		
 	def constant(self, tree, *args, **kwargs):
+		# TODO for other types
+		# TODO store type somewhere
+
+		constant_type = tree.children[0].type
+		value = "????"
+		if constant_type == 'INTCONSTANT':
+			value = int(tree.children[0].value)
+
 		code = f"""
-				li $t0, {int(tree.children[0].value)}
+				### constant
+				li $t0, {value}
 				subi $sp, $sp, 4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t\t","\t")
-		# TODO store type somewhere
-		stack.append(int(tree.children[0].value)) #TODO for other types
+		
+		# stack.append(int(tree.children[0].value)) 
 		return code
 		
 	def print_stmt(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
-		actuals = self.visit(tree.children[1])
+		actuals = self.visit(tree.children[1],**kwargs)
 
 		## TODO print (or maybe another place)
 
@@ -191,11 +210,11 @@ class Cgen(Interpreter):
 		for actual in actuals:
 			# TODO this only work if actual is a single symbol :(
 			
-			variable = symbol_table.find(actual)
+			variable = symbol_table.find_var(actual)
 		
 			if not variable:
 				# TODO variable not found noooo
-				return
+				continue
 				
 			var_reg = "$a0"
 			sys_call_code = 1
@@ -208,6 +227,7 @@ class Cgen(Interpreter):
 				sys_call_code = 4
 				
 			code += f"""
+				### print_stmt
 				li $v0, {sys_call_code} 	
 				lw {var_reg}, {variable.address}($gp)
 				syscall
@@ -216,7 +236,7 @@ class Cgen(Interpreter):
 		return code
 
 	def actuals(self, tree, *args, **kwargs):
-		actuals = self.visit_children(tree, args, kwargs)
+		actuals = self.visit_children(tree, args,**kwargs)
 		return actuals
 
 	def type(self, tree, *args, **kwargs):
