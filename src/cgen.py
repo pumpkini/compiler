@@ -1,6 +1,7 @@
 import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
+from decimal import Decimal
 
 from SymbolTable import Function, SymbolTable, Variable, Type
 
@@ -8,13 +9,22 @@ from pathlib import Path
 
 DATA_POINTER = 0
 stack = []
+labels_count = 0
 
+# TODO fix priorities
 
 class SemanticError(Exception):
-	def __init__(self, message="", line=None, col=None):
+	def __init__(self, message="", line=None, col=None, tree:Tree=None):
 		self.message = message
-		self.line = line
-		self.col = col
+		
+		if tree:
+			self.line = tree.meta.line 
+			self.col =tree.meta.column
+
+		if line:
+			self.line = line
+		if col:
+			self.col = col
 
 	def __str__(self) -> str:
 		return f"l{self.line}-c{self.col}:: {self.message}"
@@ -182,25 +192,29 @@ class Cgen(Interpreter):
 		global stack
 
 		code = ''
-		
+		print("bef",stack)
 		self.visit(tree.children[0],**kwargs)
-		variable = stack.pop()
+		lvalue_var = stack.pop()
 
 		code += self.visit(tree.children[1],**kwargs)
+		expr_var = stack.pop()
 
-		if not variable:
-			# TODO variable not found noooo
-			return ''
-
-		# TODO check type of var and expr
-
-		code += f"""
+		if lvalue_var.type_.name != expr_var.type_.name:
+			raise SemanticError('lvalue type != expr type in \'expr_assign\'', tree=tree)
+		
+		if lvalue_var.type_.name == 'int':
+			code += f"""
 				### store
 				lw $t0, 0($sp)
-				sw $t0, {variable.address}($gp) 	
+				sw $t0, {lvalue_var.address}($gp) 	
+				""".replace("\t\t\t\t","\t")
+		elif lvalue_var.type_.name == 'double':
+			code += f"""
+				### store
+				l.d $f2, 0($sp)
+				s.d $f2, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		
-		stack.pop()
 		return code
 
 
@@ -212,8 +226,7 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
-			raise SemanticError('var1 type != var2 type in \'add\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'add\'', tree=tree)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -228,12 +241,13 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### add
-				l.d $f1, 0($sp)
-				l.d $f2, 4($sp)
-				add.d $f3, $f2, $f1
-				s.d $f3, 4($sp) 
+				l.d $f2, 0($sp)
+				l.d $f4, 4($sp)
+				add.d $f6, $f4, $f2
+				s.d $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
+			# TODO what is wrong with thisss
 		
 		elif var1.type_.name == "string":
 			# TODO
@@ -242,7 +256,7 @@ class Cgen(Interpreter):
 			# TODO
 			pass
 		else:
-			raise SemanticError
+			raise SemanticError('types are not suitable for \'add\'', tree=tree)
 
 
 
@@ -257,8 +271,8 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			# TODO nooo what to do now
-			raise SemanticError
+			print(var1.type_.name, var2.type_.name)
+			raise SemanticError('var1 type != var2 type in \'sub\'', tree=tree)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -273,39 +287,48 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### sub
-				l.d $f1, 0($sp)
-				l.d $f2, 4($sp)
-				sub.d $f3, $f2, $f1
-				s.d $f3, 4($sp) 
+				l.d $f2, 0($sp)
+				l.d $f4, 4($sp)
+				sub.d $f6, $f4, $f2
+				s.d $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
 
-		elif var1.type_.name == "string":
-			# TODO
-			pass
-		elif  var1.type_.name == "array":
-			# TODO
-			pass
 		else:
-			raise SemanticError
+			raise SemanticError('types are not suitable for \'sub\'', tree=tree)
 
 
 		stack.append(Variable(type_=var1.type_))
 		return code
 
+
+	# TODO  other l_value expr_ident expr_expr
 	def ident(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
 		var_name = tree.children[0].value
 		variable = symbol_table.find_var(var_name)
-
+		
+		if not variable:
+			raise SemanticError('ident not found', tree=tree)
+		
 		stack.append(variable)
-		code = f"""
-				### ident
-				lw $t0, {variable.address}($gp)
-				addi $sp, $sp, -4
-				sw $t0, 0($sp)
-				""".replace("\t\t\t\t", "\t")
+
+		code = ''
+		if variable.type_.name == "int":
+			code = f"""
+					### ident
+					lw $t0, {variable.address}($gp)
+					addi $sp, $sp, -4
+					sw $t0, 0($sp)
+					""".replace("\t\t\t\t\t", "\t")
+		elif variable.type_.name == "double":
+			code = f"""
+					### ident
+					l.d $f2, {variable.address}($gp)
+					addi $sp, $sp, -4
+					s.d $f2, 0($sp)
+					""".replace("\t\t\t\t\t", "\t")
 		return code
 		
 
@@ -315,25 +338,57 @@ class Cgen(Interpreter):
 		constant_type = tree.children[0].type
 		value = "????"
 		type_ = "????"
+
+		code = ''
 		if constant_type == 'INTCONSTANT':
-			value = int(tree.children[0].value)
+			value = int(tree.children[0].value.lower())
 			type_ = Type.get_type_by_name('int')
+			
+			# TODO for hex
 
-		stack.append(Variable(type_=type_))
-
-		code = f"""
-				### constant
+			code = f"""
+				### constant int
 				li $t0, {value}
 				addi $sp, $sp, -4
 				sw $t0, 0($sp)
-				""".replace("\t\t\t\t","\t")
-		
+				""".replace("\t\t\t","")
+
+			
+
+		if constant_type == 'DOUBLECONSTANT':
+			value = tree.children[0].value.lower()
+			type_ = Type.get_type_by_name('double')
+			if 'e' in value:
+				# TODO 
+				pass
+			else:
+				value = Decimal(value)
+				code = f"""
+					### constant double
+					li.d $f2, {value}
+					addi $sp, $sp, -4
+					s.d $f2, 0($sp)
+					""".replace("\t\t\t\t","")
+
+		if constant_type == 'BOOLCONSTANT':
+			value = 1 if tree.children[0].value else 0
+			type_ = Type.get_type_by_name('bool')
+
+			code = f"""
+				### constant bool
+				li $t0, {value}
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t","")
+
+
+		stack.append(Variable(type_=type_))
 		return code
 		
 	def print_stmt(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
-		code = f"""\t### print stmt begin"""
+		code = f"""\t\t### print stmt begin"""
 
 		stack_size_initial = len(stack)
 
@@ -364,6 +419,16 @@ class Cgen(Interpreter):
 					jal print_bool
 					move $ra, $s0 	#restore ra
 					""".replace("\t\t\t\t","")	
+
+			if var.type_.name == 'double':
+				code += f"""
+					### print double	
+					li $v0, 3		# sys call for print double 
+					l.d $f2, {sp_offset}($sp)
+					syscall
+					""".replace("\t\t\t\t\t","\t")
+
+
 			sp_offset -= 4
 
 			# TODO other type
@@ -394,10 +459,10 @@ class Cgen(Interpreter):
 
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'boolean_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'boolean_expr\'', tree=tree)
 
 		if var1.type_.name != 'int' and var1.type_.name != 'double':
-			raise SemanticError('variables type are not double or int in \'boolean_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('variables type are not double or int in \'boolean_expr\'', tree=tree)
 
 		operand = tree.children[1].value
 
@@ -443,10 +508,10 @@ class Cgen(Interpreter):
 
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'logical_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'logical_expr\'', tree=tree)
 
 		if var1.type_.name != 'bool':
-			raise SemanticError('variables type are not bool in \'logical_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('variables type are not bool in \'logical_expr\'', tree=tree)
 
 		operand = tree.children[1].value
 
@@ -475,7 +540,7 @@ class Cgen(Interpreter):
 		var1 = stack.pop()
 
 		if var1.type_.name != 'bool':
-			raise SemanticError('variable type is not bool in \'not_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('variable type is not bool in \'not_expr\'', tree=tree)
 
 		code += f"""
 				### not_expr
@@ -520,6 +585,68 @@ class Cgen(Interpreter):
 					
 				""".replace("\t\t\t", "")
 		stack.append(Variable(Type.get_type_by_name('string')))
+
+	def if_stmt(self, tree, *args, **kwargs):
+		global labels_count
+		symbol_table = kwargs.get('symbol_table')
+
+		statement_symbol_table = SymbolTable(parent=symbol_table)
+
+		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+		expr_variable = stack.pop()
+
+		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+
+		else_code = ''
+		if len(tree.children) > 3:
+			else_symbol_table = SymbolTable(parent=symbol_table)
+			else_code = self.visit(tree.children[4], symbol_table=else_symbol_table)
+		
+
+		code = f"""
+		### if stmt no. {labels_count}
+			{expr_code}
+			lw $t0, 0($sp)
+			bne $t0, 1, else_{labels_count}
+
+			{statement_code}
+			b end_if_{labels_count}
+
+		else_{labels_count}:
+			{else_code}
+		
+		end_if_{labels_count}:
+		""".replace("\t\t", "")
+
+		labels_count += 1
+		return code
+
+	def while_stmt(self, tree, *args, **kwargs):
+		global labels_count
+		symbol_table = kwargs.get('symbol_table')
+
+		statement_symbol_table = SymbolTable(parent=symbol_table)
+
+		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+		expr_variable = stack.pop()
+
+		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+
+		code = f"""
+		### while stmt no. {labels_count}
+		start_while_{labels_count}:
+			{expr_code}
+			lw $t0, 0($sp)
+			bne $t0, 1, end_while_{labels_count}
+
+			{statement_code}
+			b start_while_{labels_count}
+
+		end_while_{labels_count}:
+		""".replace("\t\t", "")
+
+		labels_count += 1
+		return code
 
 
 def generate_tac(code):
