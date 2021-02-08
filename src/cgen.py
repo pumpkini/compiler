@@ -196,6 +196,7 @@ class Cgen(Interpreter):
 				lw $t0, 0($sp)
 				sw $t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
+
 		elif variable.type_.name == 'double':
 			code += f"""
 				### store
@@ -248,10 +249,11 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'add\'', line=tree.meta.line, col=tree.meta.column)
 
-
-
 		stack.append(Variable(type_=var1.type_))
 		return code
+
+
+
 
 	def sub(self, tree, *args, **kwargs):
 		code = ''
@@ -286,7 +288,6 @@ class Cgen(Interpreter):
 
 		else:
 			raise SemanticError('types are not suitable for \'sub\'', line=tree.meta.line, col=tree.meta.column)
-
 
 		stack.append(Variable(type_=var1.type_))
 		return code
@@ -369,6 +370,8 @@ class Cgen(Interpreter):
 		return code
 
 
+
+	
 		
 	def ident(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
