@@ -246,7 +246,11 @@ class Cgen(Interpreter):
 
 
 def generate_tac(code):
-	
+	logger.setLevel(logging.DEBUG)
+	grammer_path = Path(__file__).parent
+	grammer_file = grammer_path / 'grammer.lark'
+	parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
+	init()
 	try:
 		tree = parser.parse(code)
 		print(tree.pretty())
@@ -258,18 +262,13 @@ def generate_tac(code):
 		print(e)
 		pass
 	
-def __init__ :
-	logger.setLevel(logging.DEBUG)
-	grammer_path = Path(__file__).parent
-	grammer_file = grammer_path / 'grammer.lark'
-	parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
-	Type(INT,4)
-	Type(DOUBLE,4)
-	Type(BOOL,4)
-	Type(STRING,1)
-	Typr(VOID,0)
 
-
+def init():
+	Type(int,4)
+	Type(double,4)
+	Type(bool,4)
+	Type(string,1)
+	Typr(void,0)
 
 
 
