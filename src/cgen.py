@@ -20,8 +20,12 @@ class SemanticError(Exception):
 	def __str__(self) -> str:
 		return f"l{self.line}-c{self.col}:: {self.message}"
 
+def IncLabels():
+	Cgen.labels+=1
+	return Cgen.labels;
 
 class Cgen(Interpreter):
+	labels = 0
 	def visit(self, tree, *args, **kwargs):
 		f = getattr(self, tree.data)
 		wrapper = getattr(f, 'visit_wrapper', None)
