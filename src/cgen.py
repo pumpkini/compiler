@@ -588,7 +588,7 @@ class Cgen(Interpreter):
 				end_line_{l1}:
 					
 				""".replace("\t\t\t", "")
-		stack.append(Variable(Type.get_type_by_name('string')))
+		stack.append(Variable(type_=Type.get_type_by_name('string')))
 		return code
 
 	def if_stmt(self, tree, *args, **kwargs):
