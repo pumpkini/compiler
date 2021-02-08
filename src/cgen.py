@@ -4,17 +4,7 @@ from lark.visitors import Interpreter
 
 from SymbolTable import Function, SymbolTable, Variable, Type
 
-
-logger.setLevel(logging.DEBUG)
-
 from pathlib import Path
-
-grammer_path = Path(__file__).parent
-grammer_file = grammer_path / 'grammer.lark'
-
-parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
-
-
 
 DATA_POINTER = 0
 stack = []
@@ -256,6 +246,7 @@ class Cgen(Interpreter):
 
 
 def generate_tac(code):
+	
 	try:
 		tree = parser.parse(code)
 		print(tree.pretty())
@@ -267,6 +258,20 @@ def generate_tac(code):
 		print(e)
 		pass
 	
+def __init__ :
+	logger.setLevel(logging.DEBUG)
+	grammer_path = Path(__file__).parent
+	grammer_file = grammer_path / 'grammer.lark'
+	parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
+	Type(INT,4)
+	Type(DOUBLE,4)
+	Type(BOOL,4)
+	Type(STRING,1)
+	Typr(VOID,0)
+
+
+
+
 
 if __name__ == "__main__":
 	inputfile = 'example.d'
