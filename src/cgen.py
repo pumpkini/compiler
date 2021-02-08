@@ -430,7 +430,7 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'neg\'', line=tree.meta.line, col=tree.meta.column)
 
-		stack.append(Variable(type_=var1.type_))
+		stack.append(Variable(type_=var.type_))
 		return code
 
 
