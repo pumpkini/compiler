@@ -271,8 +271,6 @@ class Cgen(Interpreter):
 		return tree.children[0].value
 
 
-	def less(self, tree, *args, **kwargs):
-
 
 def generate_tac(code):
 	logger.setLevel(logging.DEBUG)
