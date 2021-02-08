@@ -47,9 +47,9 @@ class Cgen(Interpreter):
 			code += """
 			.data
 			falseStr: .asciiz "false"
-			trueStr: .asciiz "false"
+			trueStr: .asciiz "true"
 			""".replace("\t\t\t","\t")
-			
+
 		except SemanticError as err:
 			print(err)
 			# TODO check
@@ -270,8 +270,9 @@ class Cgen(Interpreter):
 				code += f"""
 					### print bool	
 					lw $t0, {sp_offset}($sp)
-					beq $t0, $t0, print_false
+					beq $t0, $zero, print_false
 					b print_true
+					
 					
 				print_false:
 					la $a0, falseStr
@@ -281,7 +282,7 @@ class Cgen(Interpreter):
 					b end_print_bool
 
 				print_true:
-					la $a0, falseStr
+					la $a0, trueStr
 					addi $v0, $zero, 4
 					syscall
 					jr $ra
@@ -324,10 +325,10 @@ class Cgen(Interpreter):
 			raise SemanticError('variables type are not double or int in \'less\'', line=tree.meta.line, col=tree.meta.column)
 
 		code += f"""
-				### add
+				### less
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
-				slt $t2, $t0, $t1
+				slt $t2, $t1, $t0
 				sw $t2, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
