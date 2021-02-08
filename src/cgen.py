@@ -2,7 +2,7 @@ import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
 
-from SymbolTable import Function, SymbolTable, Variable, Type_
+from SymbolTable import Function, SymbolTable, Variable, Type
 
 from pathlib import Path
 
@@ -87,7 +87,7 @@ class Cgen(Interpreter):
 		type_name = self.visit(tree.children[0],**kwargs)
 		var_name = tree.children[1].value
 
-		type_ = Type_.get_type_by_name(type_name)
+		type_ = Type.get_type_by_name(type_name)
 
 		if not type_:
 			raise Exception(f"NOOOOO {type_name} is not in types")
@@ -189,7 +189,7 @@ class Cgen(Interpreter):
 		type_ = "????"
 		if constant_type == 'INTCONSTANT':
 			value = int(tree.children[0].value)
-			type_ = Type_.get_type_by_name('int')
+			type_ = Type.get_type_by_name('int')
 
 		stack.append(Variable(type_=type_))
 
@@ -268,11 +268,11 @@ def generate_tac(code):
 	
 
 def init():
-	Type_("int",4)
-	Type_("double",4)
-	Type_("bool",4)
-	Type_("string",1)
-	Type_("void",0)
+	Type("int",4)
+	Type("double",4)
+	Type("bool",4)
+	Type("string",1)
+	Type("void",0)
 
 
 
