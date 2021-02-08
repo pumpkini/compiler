@@ -355,7 +355,7 @@ class Cgen(Interpreter):
 	def print_stmt(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
-		code = f"""\t### print stmt begin"""
+		code = f"""\t\t### print stmt begin"""
 
 		stack_size_initial = len(stack)
 
@@ -523,7 +523,6 @@ class Cgen(Interpreter):
 		global labels_count
 		symbol_table = kwargs.get('symbol_table')
 
-		print(tree)
 		statement_symbol_table = SymbolTable(parent=symbol_table)
 
 		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
@@ -538,7 +537,7 @@ class Cgen(Interpreter):
 		
 
 		code = f"""
-			### if stmt
+		### if stmt no. {labels_count}
 			{expr_code}
 			lw $t0, 0($sp)
 			bne $t0, 1, else_{labels_count}
@@ -555,6 +554,32 @@ class Cgen(Interpreter):
 		labels_count += 1
 		return code
 
+	def while_stmt(self, tree, *args, **kwargs):
+		global labels_count
+		symbol_table = kwargs.get('symbol_table')
+
+		statement_symbol_table = SymbolTable(parent=symbol_table)
+
+		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+		expr_variable = stack.pop()
+
+		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+
+		code = f"""
+		### while stmt no. {labels_count}
+		start_while_{labels_count}:
+			{expr_code}
+			lw $t0, 0($sp)
+			bne $t0, 1, end_while_{labels_count}
+
+			{statement_code}
+			b start_while_{labels_count}
+
+		end_while_{labels_count}:
+		""".replace("\t\t", "")
+
+		labels_count += 1
+		return code
 
 
 
