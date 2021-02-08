@@ -46,7 +46,7 @@ class Cgen(Interpreter):
 			code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
 		
 			code += """
-			
+
 			### function: Print_bool(a0: boolean_value)
 			print_bool: 
 				beq $a0, $zero, print_bool_false
@@ -424,18 +424,16 @@ class Cgen(Interpreter):
 
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'less\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'boolean_expr\'', line=tree.meta.line, col=tree.meta.column)
 
 		if var1.type_.name != 'int' and var1.type_.name != 'double':
-			raise SemanticError('variables type are not double or int in \'less\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('variables type are not double or int in \'boolean_expr\'', line=tree.meta.line, col=tree.meta.column)
 
+		operand = tree.children[1].value
 
 		if var1.type_.name == 'int':
 			# t0 operand 1
 			# t1 operand 2
-
-			operand = tree.children[1].value
-			print("OPERAND", operand)
 			compare_line = ""
 			if operand == '<':
 				compare_line ="slt $t2, $t0, $t1"
@@ -456,7 +454,6 @@ class Cgen(Interpreter):
 					lw $t0, 4($sp)
 					{compare_line}
 					sw $t2, 4($sp) 
-					#greater_equal
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
 		else:
@@ -466,7 +463,59 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=Type.get_type_by_name('bool')))
 		return code
 		
+	
+	def logical_expr(self, tree, *args, **kwargs):
+		code = ''
+		code += self.visit(tree.children[0],**kwargs)
+		var1 = stack.pop()
+		code += self.visit(tree.children[2],**kwargs)
+		var2 = stack.pop()
 
+
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'logical_expr\'', line=tree.meta.line, col=tree.meta.column)
+
+		if var1.type_.name != 'bool':
+			raise SemanticError('variables type are not bool in \'logical_expr\'', line=tree.meta.line, col=tree.meta.column)
+
+		operand = tree.children[1].value
+
+		compare_line = ""
+		if operand == '||':
+			compare_line = "or $t2, $t0, $t1"
+		elif operand == '&&':
+			compare_line = "and $t2, $t0, $t1"
+
+		code += f"""
+				### logical_expr
+				lw $t1, 0($sp)
+				lw $t0, 4($sp)
+				{compare_line}
+				sw $t2, 4($sp) 
+				#greater_equal
+				addi $sp, $sp, 4
+				""".replace("\t\t\t", "")
+
+		stack.append(Variable(type_=Type.get_type_by_name('bool')))
+		return code
+
+	def not_expr(self, tree, *args, **kwargs):
+		code = ''
+		code += self.visit(tree.children[1],**kwargs)
+		var1 = stack.pop()
+
+		if var1.type_.name != 'bool':
+			raise SemanticError('variable type is not bool in \'not_expr\'', line=tree.meta.line, col=tree.meta.column)
+
+		code += f"""
+				### not_expr
+				lw $t0, 0($sp)
+				xori $t1, $t0, 1
+				sw $t1, 0($sp) 
+				""".replace("\t\t\t", "")
+
+		stack.append(Variable(type_=Type.get_type_by_name('bool')))
+		return code
 
 
 def generate_tac(code):

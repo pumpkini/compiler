@@ -78,6 +78,7 @@ print_stmt: PRINT "(" actuals ")" ";"
         | expr "%" expr -> mod
         | "-" expr -> neg
         | boolean_expr
+        | logical_expr
         | READINTEGER "(" ")" -> read_integer
         | READLINE "(" ")" -> read_line
         | NEW IDENT -> new_ident
@@ -94,9 +95,10 @@ print_stmt: PRINT "(" actuals ")" ";"
         | expr ">=" expr
         | expr "==" expr
         | expr "!=" expr
-        | expr "&&" expr -> and
-        | expr "||" expr -> or
-        | "!" expr -> not
+
+!logical_expr: expr "&&" expr
+        | expr "||" expr
+        | "!" expr -> not_expr
 
 
 l_value: IDENT -> ident
