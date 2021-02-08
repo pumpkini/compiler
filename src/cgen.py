@@ -131,7 +131,7 @@ class Cgen(Interpreter):
 
 		code += f"""
 				### store
-				li $t0, 0($sp)
+				lw $t0, 0($sp)
 				sw $t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		return code
@@ -155,8 +155,8 @@ class Cgen(Interpreter):
 
 		code += f"""
 				### add
-				li $t0, 0($sp)
-				li $t1, 4($sp)
+				lw $t0, 0($sp)
+				lw $t1, 4($sp)
 				add $t2, $t1, $t0
 				sw $t2, 4($sp) 
 				addi $sp, $sp, 4
@@ -175,7 +175,7 @@ class Cgen(Interpreter):
 		code = f"""
 				### ident
 				lw $t0, {variable.address}($gp)
-				subi $sp, $sp, 4
+				addi $sp, $sp, -4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t\t", "\t")
 		return code
@@ -196,7 +196,7 @@ class Cgen(Interpreter):
 		code = f"""
 				### constant
 				li $t0, {value}
-				subi $sp, $sp, 4
+				addi $sp, $sp, -4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t\t","\t")
 		
@@ -284,3 +284,7 @@ if __name__ == "__main__":
 	code = generate_tac(code)
 	print("#### code ")
 	print(code)
+
+		
+	output_file = open("../tmp/res.mips", "w")
+	output_file.write(code)
