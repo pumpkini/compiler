@@ -589,6 +589,7 @@ class Cgen(Interpreter):
 					
 				""".replace("\t\t\t", "")
 		stack.append(Variable(Type.get_type_by_name('string')))
+		return code
 
 	def if_stmt(self, tree, *args, **kwargs):
 		global labels_count
