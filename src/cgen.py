@@ -248,9 +248,10 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'add\'', line=tree.meta.line, col=tree.meta.column)
 
+
+
 		stack.append(Variable(type_=var1.type_))
 		return code
-
 
 	def sub(self, tree, *args, **kwargs):
 		code = ''
@@ -286,91 +287,9 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'sub\'', line=tree.meta.line, col=tree.meta.column)
 
-		stack.append(Variable(type_=var1.type_))
-		return code
-
-
-
-	def mul(self, tree, *args, **kwargs):
-		code = ''
-		code += self.visit(tree.children[0],**kwargs)
-		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
-		var2 = stack.pop()
-
-		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
-			raise SemanticError('var1 type != var2 type in \'mul\'', line=tree.meta.line, col=tree.meta.column)
-		
-		elif var1.type_.name == "int":
-			code += f"""
-				### mul
-				lw $t0, 0($sp)
-				lw $t1, 4($sp)
-				mul $t2, $t1, $t0
-				sw $t2, 4($sp) 
-				addi $sp, $sp, 4
-				""".replace("\t\t\t\t", "\t")
-		
-		elif var1.type_.name == "double":
-			code += f"""
-				### mul
-				l.d $f2, 0($sp)
-				l.d $f4, 4($sp)
-				mul.d $f6, $f4, $f2
-				s.d $f6, 4($sp) 
-				addi $sp, $sp, 4
-				""".replace("\t\t\t\t", "\t")
-		
-		else:
-			raise SemanticError('types are not suitable for \'mul\'', line=tree.meta.line, col=tree.meta.column)
 
 		stack.append(Variable(type_=var1.type_))
 		return code
-
-
-
-	def div(self, tree, *args, **kwargs):
-		code = ''
-		code += self.visit(tree.children[0],**kwargs)
-		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
-		var2 = stack.pop()
-
-		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
-			raise SemanticError('var1 type != var2 type in \'div\'', line=tree.meta.line, col=tree.meta.column)
-		
-		elif var1.type_.name == "int":
-			code += f"""
-				### div
-				lw $t0, 0($sp)
-				lw $t1, 4($sp)
-				div $t2, $t1, $t0
-				sw $t2, 4($sp) 
-				addi $sp, $sp, 4
-				""".replace("\t\t\t\t", "\t")
-		
-		elif var1.type_.name == "double":
-			code += f"""
-				### div
-				l.d $f2, 0($sp)
-				l.d $f4, 4($sp)
-				div.d $f6, $f4, $f2
-				s.d $f6, 4($sp) 
-				addi $sp, $sp, 4
-				""".replace("\t\t\t\t", "\t")
-		
-		else:
-			raise SemanticError('types are not suitable for \'div\'', line=tree.meta.line, col=tree.meta.column)
-
-		stack.append(Variable(type_=var1.type_))
-		return code
-
-
-
-
-
 
 	def ident(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
