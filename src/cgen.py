@@ -8,7 +8,9 @@ from pathlib import Path
 
 DATA_POINTER = 0
 stack = []
+labels_count = 0
 
+# TODO fix priorities
 
 class SemanticError(Exception):
 	def __init__(self, message="", line=None, col=None):
@@ -482,6 +484,44 @@ class Cgen(Interpreter):
 
 		stack.append(Variable(type_=Type.get_type_by_name('bool')))
 		return code
+
+	def if_stmt(self, tree, *args, **kwargs):
+		global labels_count
+		symbol_table = kwargs.get('symbol_table')
+
+		print(tree)
+		statement_symbol_table = SymbolTable(parent=symbol_table)
+
+		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+		expr_variable = stack.pop()
+
+		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+
+		else_code = ''
+		if len(tree.children) > 3:
+			else_symbol_table = SymbolTable(parent=symbol_table)
+			else_code = self.visit(tree.children[4], symbol_table=else_symbol_table)
+		
+
+		code = f"""
+			### if stmt
+			{expr_code}
+			lw $t0, 0($sp)
+			bne $t0, 1, else_{labels_count}
+
+			{statement_code}
+			b end_if_{labels_count}
+
+		else_{labels_count}:
+			{else_code}
+		
+		end_if_{labels_count}:
+		""".replace("\t\t", "")
+
+		labels_count += 1
+		return code
+
+
 
 
 def generate_tac(code):
