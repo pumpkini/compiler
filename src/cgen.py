@@ -264,11 +264,11 @@ def generate_tac(code):
 	
 
 def init():
-	Type(int,4)
-	Type(double,4)
-	Type(bool,4)
-	Type(string,1)
-	Typr(void,0)
+	Type("int",4)
+	Type("double",4)
+	Type("bool",4)
+	Type("string",1)
+	Type("void",0)
 
 
 
