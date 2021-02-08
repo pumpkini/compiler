@@ -93,14 +93,13 @@ class Cgen(Interpreter):
 	def variable(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
-		type_ = self.visit(tree.children[0],**kwargs)
+		type_name = self.visit(tree.children[0],**kwargs)
 		var_name = tree.children[1].value
 
-		size = 4
-		if type_ in TYPE_SIZE:
-			size = TYPE_SIZE[type_]
-		else:
-			raise Exception(f"NOOOOO {type_} is not in TYPE_SIZE")
+		type_ = Type.get_type_by_name(type_name)
+
+		if not type_:
+			raise Exception(f"NOOOOO {type_name} is not in types")
 
 		
 		global DATA_POINTER
@@ -114,7 +113,7 @@ class Cgen(Interpreter):
 				name=var_name,
 				type_=type_,
 				address=DATA_POINTER,
-				size=size
+				size=1
 				)
 			
 		DATA_POINTER += size
