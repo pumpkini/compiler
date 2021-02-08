@@ -11,7 +11,7 @@ stack = []
 
 
 class SemanticError(Exception):
-	def __init__(self, message, line=None, col=None):
+	def __init__(self, message="", line=None, col=None):
 		self.message = message
 		self.line = line
 		self.col = col
@@ -45,10 +45,34 @@ class Cgen(Interpreter):
 			code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
 		
 			code += """
+			
+			### function: Print_bool(a0: boolean_value)
+			print_bool: 
+				beq $a0, $zero, print_bool_false
+				b print_bool_true
+
+			print_bool_false:
+				la $a0, falseStr
+				li $v0, 4	# sys call for print string 
+				syscall
+				b print_bool_end
+
+			print_bool_true:
+				la $a0, trueStr
+				li $v0, 4	# sys call for print string
+				syscall
+				b print_bool_end
+
+			print_bool_end:
+				jr $ra
+
+			""".replace("\t\t\t","")
+
+			code += """
 			.data
 			falseStr: .asciiz "false"
 			trueStr: .asciiz "true"
-			""".replace("\t\t\t","\t")
+			""".replace("\t\t\t","")
 
 		except SemanticError as err:
 			print(err)
@@ -101,6 +125,7 @@ class Cgen(Interpreter):
 		code = f"""
 {func_name}:
 	{statement_block}
+	jr $ra
 		"""
 
 		return code
@@ -183,8 +208,8 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			# TODO nooo what to do now
-			raise SemanticError
+			print(var1.type_.name, var2.type_.name)
+			raise SemanticError('var1 type != var2 type in \'add\'', line=tree.meta.line, col=tree.meta.column)
 		
 		# TODO check if we can add this type
 
@@ -269,26 +294,10 @@ class Cgen(Interpreter):
 				# TODO  refactor this
 				code += f"""
 					### print bool	
-					lw $t0, {sp_offset}($sp)
-					beq $t0, $zero, print_false
-					b print_true
-					
-					
-				print_false:
-					la $a0, falseStr
-					addi $v0, $zero, 4
-					syscall
-					jr $ra
-					b end_print_bool
-
-				print_true:
-					la $a0, trueStr
-					addi $v0, $zero, 4
-					syscall
-					jr $ra
-
-				end_print_bool:
-
+					lw $a0, {sp_offset}($sp)
+					move $s0, $ra 	#save ra
+					jal print_bool
+					move $ra, $s0 	#restore ra
 					""".replace("\t\t\t\t","")	
 			sp_offset -= 4
 
@@ -311,12 +320,13 @@ class Cgen(Interpreter):
 		return tree.children[0].value
 
 
-	def less(self, tree, *args, **kwargs):
+	def boolean_expr(self, tree, *args, **kwargs):
 		code = ''
 		code += self.visit(tree.children[0],**kwargs)
 		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[2],**kwargs)
 		var2 = stack.pop()
+
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'less\'', line=tree.meta.line, col=tree.meta.column)
@@ -324,14 +334,39 @@ class Cgen(Interpreter):
 		if var1.type_.name != 'int' and var1.type_.name != 'double':
 			raise SemanticError('variables type are not double or int in \'less\'', line=tree.meta.line, col=tree.meta.column)
 
-		code += f"""
-				### less
-				lw $t0, 0($sp)
-				lw $t1, 4($sp)
-				slt $t2, $t1, $t0
-				sw $t2, 4($sp) 
-				addi $sp, $sp, 4
-				""".replace("\t\t\t\t", "\t")
+
+		if var1.type_.name == 'int':
+			# t0 operand 1
+			# t1 operand 2
+
+			operand = tree.children[1].value
+			print("OPERAND", operand)
+			compare_line = ""
+			if operand == '<':
+				compare_line ="slt $t2, $t0, $t1"
+			elif operand == '>':
+				compare_line = "sgt $t2, $t0, $t1"
+			elif operand == '<=':
+				compare_line = "sge $t2, $t1, $t0"
+			elif operand == '>=':
+				compare_line = "sge $t2, $t0, $t1"
+			elif operand == '==':
+				compare_line = "seq $t2, $t0, $t1"
+			elif operand == '!=':
+				compare_line = "sne $t2, $t0, $t1"
+
+			code += f"""
+					### boolean_expr
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					{compare_line}
+					sw $t2, 4($sp) 
+					#greater_equal
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t")
+		else:
+			# TODO for double
+			pass
 
 		stack.append(Variable(type_=Type.get_type_by_name('bool')))
 		return code
