@@ -10,25 +10,25 @@ class Type():
         Type.types_index[self.index] = name
 
     @classmethod
-    def get_type_by_name(name):
-        if name in Type.types:
-            return Type.types[name]
+    def get_type_by_name(cls, name):
+        if name in cls.types:
+            return cls.types[name]
 
         return None # Type not found
 
     @classmethod
-    def get_type_by_index(index):
-        if index not in Type.types_index:
+    def get_type_by_index(cls, index):
+        if index not in cls.types_index:
             return None # Type not found
         
-        name = Type.types_index[index]
+        name = cls.types_index[index]
         
-        return Type.get_type_by_name(name)
+        return cls.get_type_by_name(name)
 
 
 
 class Variable():
-    def __init__(self, name, type_ = None, address = None, size = 0):
+    def __init__(self, name= None, type_ = None, address = None, size = 0):
         self.name = name
         self.type_ = type_
         self.address = address

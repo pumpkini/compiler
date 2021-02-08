@@ -30,6 +30,7 @@ class Cgen(Interpreter):
 	def program(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 		code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
+		
 		return code
 		
 	def	decl(self, tree, *args, **kwargs):
@@ -38,6 +39,7 @@ class Cgen(Interpreter):
 		for decl in tree.children:
 			if decl.data == 'function_decl':
 				code += self.visit(decl,tree, symbol_table = symbol_table)
+		
 		return code
 	
 	def function_decl(self, tree, *args, **kwargs):
@@ -72,11 +74,10 @@ class Cgen(Interpreter):
 
 		new_symbol_table = SymbolTable(parent=symbol_table)
 
-		childrens_code = self.visit_children(tree, symbol_table = new_symbol_table)
-		
-		childrens_code = [c if c else '' for c in childrens_code]
+		children_code = self.visit_children(tree, symbol_table = new_symbol_table)
+		children_code = [c if c else '' for c in children_code]
 
-		code = '\n'.join(childrens_code)
+		code = '\n'.join(children_code)
 
 		return code
 
@@ -98,24 +99,28 @@ class Cgen(Interpreter):
 			### TODO var_name already exist in this scope. error?
 			pass
 
+		size = 1
+		total_size = size * type_.size
 
 		symbol_table.variables[var_name] = Variable(
 				name=var_name,
 				type_=type_,
 				address=DATA_POINTER,
-				size=1
+				size=size
 				)
 			
-		DATA_POINTER += size
+		DATA_POINTER += total_size
 		
 		return ""	
 
 	def expr_assign(self, tree, *args, **kwargs):
-		# l_value = expr
-		symbol_table = kwargs.get('symbol_table')
+		global stack
 
 		code = ''
-		variable = self.visit(tree.children[0],**kwargs, return_var=True)
+		
+		self.visit(tree.children[0],**kwargs)
+		variable = stack.pop()
+
 		code += self.visit(tree.children[1],**kwargs)
 
 		if not variable:
@@ -135,7 +140,19 @@ class Cgen(Interpreter):
 	def add(self, tree, *args, **kwargs):
 		code = ''
 		code += self.visit(tree.children[0],**kwargs)
+		var1 = stack.pop()
 		code += self.visit(tree.children[1],**kwargs)
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			# TODO nooo what to do now
+			raise Exception('semantic error')
+		
+		# TODO check if we can add this type
+
+		# TODO string
+		# TODO double
+
 		code += f"""
 				### add
 				li $t0, 0($sp)
@@ -144,17 +161,17 @@ class Cgen(Interpreter):
 				sw $t2, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
+
+		stack.append(Variable(type_=var1.type_))
 		return code
 
-	def ident(self, tree, return_var=False, *args, **kwargs):
+	def ident(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
 		var_name = tree.children[0].value
 		variable = symbol_table.find_var(var_name)
 
-		if return_var:
-			return variable
-		
+		stack.append(variable)
 		code = f"""
 				### ident
 				lw $t0, {variable.address}($gp)
@@ -163,14 +180,18 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 		return code
 		
+
 	def constant(self, tree, *args, **kwargs):
 		# TODO for other types
-		# TODO store type somewhere
 
 		constant_type = tree.children[0].type
 		value = "????"
+		type_ = "????"
 		if constant_type == 'INTCONSTANT':
 			value = int(tree.children[0].value)
+			type_ = Type.get_type_by_name('int')
+
+		stack.append(Variable(type_=type_))
 
 		code = f"""
 				### constant
@@ -179,64 +200,48 @@ class Cgen(Interpreter):
 				sw $t0, 0($sp)
 				""".replace("\t\t\t\t","\t")
 		
-		# stack.append(int(tree.children[0].value)) 
 		return code
 		
 	def print_stmt(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
-		code = f"""
-			### print stmt start
-			add $s0, $sp, $zero
-		""".replace("\t\t\t\t","\t")
+		code = f"""\t### print stmt begin"""
+
+		stack_size_initial = len(stack)
 
 		actuals = self.visit(tree.children[1],**kwargs)
 
-		## TODO print (or maybe another place)
-
 		code += actuals
+		
+		if len(stack) == stack_size_initial:
+			return code
+
+
+		sp_offset = (len(stack) - stack_size_initial - 1) * 4
+		for var in stack[stack_size_initial:]:
+			if var.type_.name  == 'int':
+				code += f"""
+					### print_stmt	
+					li $v0, 1		# sys call for print integer 
+					lw $a0, {sp_offset}($sp)
+					syscall
+					""".replace("\t\t\t\t\t","\t")	
+			sp_offset -= 4
+
+			# TODO other type
+
 
 		code += f"""
-			### print stmt continue
-			li $t0, 0($sp)
-			addi $sp, $sp, 4
-			lw {var_reg}, {variable.address}($gp)
-			syscall	
-			lw {var_reg}, {variable.address}($gp)
-			syscall	
-		"""
-		code = ""
-		for actual in actuals:
-			# TODO this only work if actual is a single symbol :(
-			
-			variable = symbol_table.find_var(actual)
-		
-			if not variable:
-				# TODO variable not found noooo
-				continue
-				
-			var_reg = "$a0"
-			sys_call_code = 1
-			if variable.type_ == 'int':
-				sys_call_code = 1
-			elif variable.type == 'double':
-				sys_call_code = 3
-				var_reg = "$f12"
-			elif variable.type == 'string': # TODO not sure
-				sys_call_code = 4
-				
-			code += f"""
-				### print_stmt
-				li $v0, {sys_call_code} 	
-				lw {var_reg}, {variable.address}($gp)
-				syscall
+				addi $sp, $sp, {(len(stack) - stack_size_initial ) * 4}
+				### print stmt end
 				""".replace("\t\t\t\t","\t")
 
 		return code
 
 	def actuals(self, tree, *args, **kwargs):
 		actuals = self.visit_children(tree, args,**kwargs)
-		return actuals
+		code = '\n'.join(actuals)
+		return code
 
 	def type(self, tree, *args, **kwargs):
 		return tree.children[0].value
