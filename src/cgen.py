@@ -20,8 +20,12 @@ class SemanticError(Exception):
 	def __str__(self) -> str:
 		return f"l{self.line}-c{self.col}:: {self.message}"
 
+def IncLabels():
+	Cgen.labels+=1
+	return Cgen.labels;
 
 class Cgen(Interpreter):
+	labels = 0
 	def visit(self, tree, *args, **kwargs):
 		f = getattr(self, tree.data)
 		wrapper = getattr(f, 'visit_wrapper', None)
@@ -599,6 +603,132 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=Type.get_type_by_name('bool')))
 		return code
 
+	def read_line(self, tree, *args, **kwargs):
+		l1 = IncLabels()
+		l2 = IncLabels()
+		l3 = IncLabels()
+		code = f"""
+				### read Line
+				li $v0, 9
+				li $a0, 1000
+				syscall #store space
+				sub $sp, $sp, 8
+				sw $v0, 0($sp)
+				move $a0, $v0
+				li $a1, 1000
+				li $v0, 8
+				syscall #read line
+				lw $a0, 0($sp)
+				line_{l1}:
+					lb $t0, 0($a0)
+					beq $t0, 0, end_line_{l1}
+					bne $t0, 10, remover_{l2}
+					li $t2, 0
+					sb $t2, 0($a0)
+				remover_{l2}:
+					bne $t0, 13, remover_{l3}
+					li $t2, 0
+					sb $t2, 0($a0)
+				remover_{l3}:
+					addi $a0, $a0, 1
+					j line_{l1}
+				end_line_{l1}:
+					
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=Type.get_type_by_name('string')))
+		return code
+
+	def itod(self, tree, *args, **kwargs):
+		code = self.visit(tree.children[1], **kwargs)
+		var1 = stack.pop()
+
+		if var1.type_.name != 'int':
+			raise SemanticError('variable type is not integer in \'itod\'', tree=tree)
+
+		code += f"""
+					la $t0, 0($sp)
+					mtc1 $t0, $f0
+					cvt.d.w $f0, $f0
+					s.d $f0, 0($sp)
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=Type.get_type_by_name('double')))
+		return code
+	def dtoi(self, tree, *args, **kwargs):
+		code = self.visit(tree.children[1], **kwargs)
+		var1 = stack.pop()
+
+		if var1.type_.name != 'double':
+			raise SemanticError('variable type is not double in \'dtoi\'', tree=tree)
+
+		code+= f"""
+				la $t0, 0($sp)
+				mov $f0, $t0
+				cvt.w.d $f0, $f0
+				mfc1 $t0, $f0
+				sw $a0, 0($sp)
+				""".replace("\t\t\t", "")
+
+	def if_stmt(self, tree, *args, **kwargs):
+		global labels_count
+		symbol_table = kwargs.get('symbol_table')
+
+		statement_symbol_table = SymbolTable(parent=symbol_table)
+
+		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+		expr_variable = stack.pop()
+
+		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+
+		else_code = ''
+		if len(tree.children) > 3:
+			else_symbol_table = SymbolTable(parent=symbol_table)
+			else_code = self.visit(tree.children[4], symbol_table=else_symbol_table)
+		
+
+		code = f"""
+		### if stmt no. {labels_count}
+			{expr_code}
+			lw $t0, 0($sp)
+			bne $t0, 1, else_{labels_count}
+
+			{statement_code}
+			b end_if_{labels_count}
+
+		else_{labels_count}:
+			{else_code}
+		
+		end_if_{labels_count}:
+		""".replace("\t\t", "")
+
+		labels_count += 1
+		return code
+
+	def while_stmt(self, tree, *args, **kwargs):
+		global labels_count
+		symbol_table = kwargs.get('symbol_table')
+
+		statement_symbol_table = SymbolTable(parent=symbol_table)
+
+		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+		expr_variable = stack.pop()
+
+		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+
+		code = f"""
+		### while stmt no. {labels_count}
+		start_while_{labels_count}:
+			{expr_code}
+			lw $t0, 0($sp)
+			bne $t0, 1, end_while_{labels_count}
+
+			{statement_code}
+			b start_while_{labels_count}
+
+		end_while_{labels_count}:
+		""".replace("\t\t", "")
+
+		labels_count += 1
+		return code
 
 def generate_tac(code):
 	logger.setLevel(logging.DEBUG)
