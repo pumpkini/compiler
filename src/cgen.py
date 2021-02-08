@@ -9,7 +9,6 @@ from pathlib import Path
 
 DATA_POINTER = 0
 stack = []
-labels_count = 0
 
 # TODO fix priorities
 
@@ -592,7 +591,7 @@ class Cgen(Interpreter):
 		return code
 
 	def if_stmt(self, tree, *args, **kwargs):
-		global labels_count
+		
 		symbol_table = kwargs.get('symbol_table')
 
 		statement_symbol_table = SymbolTable(parent=symbol_table)
@@ -608,26 +607,25 @@ class Cgen(Interpreter):
 			else_code = self.visit(tree.children[4], symbol_table=else_symbol_table)
 		
 
+		label_num = IncLabels()
 		code = f"""
-		### if stmt no. {labels_count}
+		### if stmt no. {label_num}
 			{expr_code}
 			lw $t0, 0($sp)
-			bne $t0, 1, else_{labels_count}
+			bne $t0, 1, else_{label_num}
 
 			{statement_code}
-			b end_if_{labels_count}
+			b end_if_{label_num}
 
-		else_{labels_count}:
+		else_{label_num}:
 			{else_code}
 		
-		end_if_{labels_count}:
+		end_if_{label_num}:
 		""".replace("\t\t", "")
 
-		labels_count += 1
 		return code
 
 	def while_stmt(self, tree, *args, **kwargs):
-		global labels_count
 		symbol_table = kwargs.get('symbol_table')
 
 		statement_symbol_table = SymbolTable(parent=symbol_table)
@@ -637,20 +635,21 @@ class Cgen(Interpreter):
 
 		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
 
+		label_num = IncLabels()
+
 		code = f"""
-		### while stmt no. {labels_count}
-		start_while_{labels_count}:
+		### while stmt no. {label_num}
+		start_while_{label_num}:
 			{expr_code}
 			lw $t0, 0($sp)
-			bne $t0, 1, end_while_{labels_count}
+			bne $t0, 1, end_while_{label_num}
 
 			{statement_code}
-			b start_while_{labels_count}
+			b start_while_{label_num}
 
-		end_while_{labels_count}:
+		end_while_{label_num}:
 		""".replace("\t\t", "")
 
-		labels_count += 1
 		return code
 
 
