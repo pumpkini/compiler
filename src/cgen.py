@@ -82,6 +82,7 @@ class Cgen(Interpreter):
 			.data
 			falseStr: .asciiz "false"
 			trueStr: .asciiz "true"
+			newLineStr: .asciiz "\n"
 			""".replace("\t\t\t","")
 
 		except SemanticError as err:
@@ -431,6 +432,9 @@ class Cgen(Interpreter):
 
 
 		code += f"""
+				la $a0, newLineStr
+				li $v0, 4	# sys call for print string
+				syscall
 				addi $sp, $sp, {(len(stack) - stack_size_initial ) * 4}
 				### print stmt end
 				""".replace("\t\t\t\t","\t")
