@@ -1,3 +1,32 @@
+
+class Type():
+    types = {}
+    types_index = {}
+    def __init__(self, name, size):
+        self.name = name
+        self.size = size
+        self.index = len(Type.types)
+        Type.types[name] = self
+        Type.types_index[self.index] = name
+
+    @classmethod
+    def get_type_by_name(name):
+        if name in Type.types:
+            return Type.types[name]
+
+        return None # Type not found
+
+    @classmethod
+    def get_type_by_index(index):
+        if index not in Type.types_index:
+            return None # Type not found
+        
+        name = Type.types_index[index]
+        
+        return Type.get_type_by_name(name)
+
+
+
 class Variable():
     def __init__(self, name, type_ = None, address = None, size = 0):
         self.name = name
@@ -53,4 +82,5 @@ class SymbolTable():
 
     def __str__(self) -> str:
         return f"SYMBOLYABLE: {self.get_index()} PARENT: {self.parent.get_index() if self.parent else -1}\n\tVARIABLES: {[v.__str__() for v in self.variables.values()]}\n\tFUNCTIONS: {[f.__str__() for f in self.functions]}"
+
 

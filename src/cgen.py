@@ -2,7 +2,7 @@ import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
 
-from SymbolTable import Function, SymbolTable, Variable
+from SymbolTable import Function, SymbolTable, Variable, Type
 
 
 logger.setLevel(logging.DEBUG)
@@ -15,12 +15,6 @@ grammer_file = grammer_path / 'grammer.lark'
 parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
 
 
-TYPE_SIZE = {
-	'int': 4,
-	'double': 8,
-	'bool': 4,
-	'string': 4
-}
 
 DATA_POINTER = 0
 stack = []
@@ -144,7 +138,7 @@ class Cgen(Interpreter):
 		code += f"""
 				### store
 				li $t0, 0($sp)
-				sw	$t0, {variable.address}($gp) 	
+				sw $t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		return code
 
@@ -174,7 +168,7 @@ class Cgen(Interpreter):
 		
 		code = f"""
 				### ident
-				lw	$t0, {variable.address}($gp)
+				lw $t0, {variable.address}($gp)
 				subi $sp, $sp, 4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t\t", "\t")
@@ -202,10 +196,26 @@ class Cgen(Interpreter):
 	def print_stmt(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
+		code = f"""
+			### print stmt start
+			add $s0, $sp, $zero
+		""".replace("\t\t\t\t","\t")
+
 		actuals = self.visit(tree.children[1],**kwargs)
 
 		## TODO print (or maybe another place)
 
+		code += actuals
+
+		code += f"""
+			### print stmt continue
+			li $t0, 0($sp)
+			addi $sp, $sp, 4
+			lw {var_reg}, {variable.address}($gp)
+			syscall	
+			lw {var_reg}, {variable.address}($gp)
+			syscall	
+		"""
 		code = ""
 		for actual in actuals:
 			# TODO this only work if actual is a single symbol :(
