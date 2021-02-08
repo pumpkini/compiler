@@ -1,13 +1,13 @@
 
-class Type():
+class Type_():
     types = {}
     types_index = {}
     def __init__(self, name, size):
         self.name = name
         self.size = size
-        self.index = len(Type.types)
-        Type.types[name] = self
-        Type.types_index[self.index] = name
+        self.index = len(Type_.types)
+        Type_.types[name] = self
+        Type_.types_index[self.index] = name
 
     @classmethod
     def get_type_by_name(cls, name):
@@ -28,7 +28,7 @@ class Type():
 
 
 class Variable():
-    def __init__(self, name= None, type_ = None, address = None, size = 0):
+    def __init__(self, name= None, type_:Type_ = None, address = None, size = 0):
         self.name = name
         self.type_ = type_
         self.address = address
@@ -39,7 +39,7 @@ class Variable():
     
 
 class Function():
-    def __init__(self, name, type_ = None, **kwargs):
+    def __init__(self, name, type_:Type_ = None, **kwargs):
             self.name = name
             self.type_ = type_
             self.arguments = {}
