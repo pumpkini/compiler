@@ -1,5 +1,7 @@
 int main() {
-    string b;
-    b = ReadLine();
-    Print(b);
+    int a;
+    int b;
+    b = 2;
+    a = 1 + b;
+    Print(a);
 }

@@ -2,7 +2,6 @@ import sys, getopt
 from collections import namedtuple
 import scanner
 import my_parser
-import cgen
 
 help_message = '''
 main.py -i <inputfile> -o <outputfile>
@@ -71,14 +70,12 @@ def main(argv):
 	# only_scanner(code, output_file)
 
 	#phase2
-	# can_parse = my_parser.parse(code)
-	# if can_parse:
-	# 	output_file.write("OK")
-	# else:
-	# 	output_file.write("Syntax Error")
+	can_parse = my_parser.parse(code)
+	if can_parse:
+		output_file.write("OK")
+	else:
+		output_file.write("Syntax Error")
 
-	#phase3
-	cgen.generate_tac(code)
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
