@@ -225,7 +225,7 @@ class Cgen(Interpreter):
 		
 		elif var1.type_.name == "int":
 			code += f"""
-				### add
+				### add int
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
 				add $t2, $t1, $t0
@@ -235,7 +235,7 @@ class Cgen(Interpreter):
 
 		elif var1.type_.name == "double":
 			code += f"""
-				### add
+				### add double
 				l.d $f2, 0($sp)
 				l.d $f4, 4($sp)
 				add.d $f6, $f4, $f2
@@ -272,7 +272,7 @@ class Cgen(Interpreter):
 		
 		elif var1.type_.name == "int":
 			code += f"""
-				### sub
+				### sub int
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
 				sub $t2, $t1, $t0
@@ -282,7 +282,7 @@ class Cgen(Interpreter):
 
 		elif var1.type_.name == "double":
 			code += f"""
-				### sub
+				### sub double
 				l.d $f2, 0($sp)
 				l.d $f4, 4($sp)
 				sub.d $f6, $f4, $f2
@@ -310,7 +310,7 @@ class Cgen(Interpreter):
 		
 		elif var1.type_.name == "int":
 			code += f"""
-				### mul
+				### mul int
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
 				mul $t2, $t1, $t0
@@ -320,7 +320,7 @@ class Cgen(Interpreter):
 		
 		elif var1.type_.name == "double":
 			code += f"""
-				### mul
+				### mul double
 				l.d $f2, 0($sp)
 				l.d $f4, 4($sp)
 				mul.d $f6, $f4, $f2
@@ -349,7 +349,7 @@ class Cgen(Interpreter):
 		
 		elif var1.type_.name == "int":
 			code += f"""
-				### div
+				### div int
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
 				div $t2, $t1, $t0
@@ -359,7 +359,7 @@ class Cgen(Interpreter):
 		
 		elif var1.type_.name == "double":
 			code += f"""
-				### div
+				### div double
 				l.d $f2, 0($sp)
 				l.d $f4, 4($sp)
 				div.d $f6, $f4, $f2
@@ -369,6 +369,66 @@ class Cgen(Interpreter):
 		
 		else:
 			raise SemanticError('types are not suitable for \'div\'', line=tree.meta.line, col=tree.meta.column)
+
+		stack.append(Variable(type_=var1.type_))
+		return code
+
+
+
+	def mod(self, tree, *args, **kwargs):
+		code = ''
+		code += self.visit(tree.children[0],**kwargs)
+		var1 = stack.pop()
+		code += self.visit(tree.children[1],**kwargs)
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			print(var1.type_.name, var2.type_.name)
+			raise SemanticError('var1 type != var2 type in \'mod\'', line=tree.meta.line, col=tree.meta.column)
+		
+		elif var1.type_.name == "int":
+			code += f"""
+				### mod
+				lw $t0, 0($sp)
+				lw $t1, 4($sp)
+				div $t1, $t0
+				mfhi $t2
+				sw $t2, 4($sp) 
+				addi $sp, $sp, 4
+				""".replace("\t\t\t\t", "\t")
+		
+		else:
+			raise SemanticError('types are not suitable for \'mod\'', line=tree.meta.line, col=tree.meta.column)
+
+		stack.append(Variable(type_=var1.type_))
+		return code
+
+
+
+
+	def neg(self, tree, *args, **kwargs):
+		code = ''
+		code += self.visit(tree.children[0],**kwargs)
+		var = stack.pop()
+		
+		if var.type_.name == "int":
+			code += f"""
+				### neg int
+				lw $t0, 0($sp)
+				sub $t0, $zero, $t0
+				sw $t0, 0($sp) 
+				""".replace("\t\t\t\t", "\t")
+				#TODO check
+		elif var.type_.name == "double":
+			code += f"""
+				### neg double
+				l.d $f2, 0($sp)
+				neg.d $f2, $f2
+            	s.d $f2, 0($sp)
+				""".replace("\t\t\t\t", "\t")
+				#TODO check
+		else:
+			raise SemanticError('types are not suitable for \'neg\'', line=tree.meta.line, col=tree.meta.column)
 
 		stack.append(Variable(type_=var1.type_))
 		return code
