@@ -11,8 +11,13 @@ stack = []
 
 
 class SemanticError(Exception):
-    def __init__(self, message):
-        self.message = message
+	def __init__(self, message, line=None, col=None):
+		self.message = message
+		self.line = line
+		self.col = col
+
+	def __str__(self) -> str:
+		return f"l{self.line}-c{self.col}:: {self.message}"
 
 
 class Cgen(Interpreter):
@@ -26,20 +31,27 @@ class Cgen(Interpreter):
 	
 	def visit_children(self, tree, *args, **kwargs):
 		return [self.visit(child, *args, **kwargs) if isinstance(child, Tree) else child
-                for child in tree.children]
+				for child in tree.children]
 	
 	def __default__(self, tree, *args, **kwargs):
 		return self.visit_children(tree, *args, **kwargs)
 
 
-    ### Cgen methods
+	### Cgen methods
 	def program(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
 
 		try:
 			code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
 		
+			code += """
+			.data
+			falseStr: .asciiz "false"
+			trueStr: .asciiz "false"
+			""".replace("\t\t\t","\t")
+			
 		except SemanticError as err:
+			print(err)
 			# TODO check
 			code = """
 			.text
@@ -158,6 +170,8 @@ class Cgen(Interpreter):
 				lw $t0, 0($sp)
 				sw $t0, {variable.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
+		
+		stack.pop()
 		return code
 
 
@@ -234,7 +248,7 @@ class Cgen(Interpreter):
 		stack_size_initial = len(stack)
 
 		actuals = self.visit(tree.children[1],**kwargs)
-
+		print(actuals)
 		code += actuals
 		
 		if len(stack) == stack_size_initial:
@@ -245,11 +259,36 @@ class Cgen(Interpreter):
 		for var in stack[stack_size_initial:]:
 			if var.type_.name  == 'int':
 				code += f"""
-					### print_stmt	
+					### print int	
 					li $v0, 1		# sys call for print integer 
 					lw $a0, {sp_offset}($sp)
 					syscall
 					""".replace("\t\t\t\t\t","\t")	
+			
+			if var.type_.name  == 'bool':
+				# TODO  refactor this
+				code += f"""
+					### print bool	
+					lw $t0, {sp_offset}($sp)
+					beq $t0, $t0, print_false
+					b print_true
+					
+				print_false:
+					la $a0, falseStr
+					addi $v0, $zero, 4
+					syscall
+					jr $ra
+					b end_print_bool
+
+				print_true:
+					la $a0, falseStr
+					addi $v0, $zero, 4
+					syscall
+					jr $ra
+
+				end_print_bool:
+
+					""".replace("\t\t\t\t","")	
 			sp_offset -= 4
 
 			# TODO other type
@@ -271,12 +310,39 @@ class Cgen(Interpreter):
 		return tree.children[0].value
 
 
+	def less(self, tree, *args, **kwargs):
+		code = ''
+		code += self.visit(tree.children[0],**kwargs)
+		var1 = stack.pop()
+		code += self.visit(tree.children[1],**kwargs)
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'less\'', line=tree.meta.line, col=tree.meta.column)
+
+		if var1.type_.name != 'int' and var1.type_.name != 'double':
+			raise SemanticError('variables type are not double or int in \'less\'', line=tree.meta.line, col=tree.meta.column)
+
+		code += f"""
+				### add
+				lw $t0, 0($sp)
+				lw $t1, 4($sp)
+				slt $t2, $t0, $t1
+				sw $t2, 4($sp) 
+				addi $sp, $sp, 4
+				""".replace("\t\t\t\t", "\t")
+
+		stack.append(Variable(type_=Type.get_type_by_name('bool')))
+		return code
+		
+
+
 
 def generate_tac(code):
 	logger.setLevel(logging.DEBUG)
 	grammer_path = Path(__file__).parent
 	grammer_file = grammer_path / 'grammer.lark'
-	parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr")
+	parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr", propagate_positions=True)
 	init()
 	try:
 		tree = parser.parse(code)
@@ -300,7 +366,8 @@ def init():
 
 
 if __name__ == "__main__":
-	inputfile = 'example.d'
+	# inputfile = 'example.d'
+	inputfile = '../tmp/in1.d'
 	code = ""
 	with open(inputfile, "r") as input_file:
 		code = input_file.read()
