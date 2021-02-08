@@ -9,6 +9,12 @@ from pathlib import Path
 DATA_POINTER = 0
 stack = []
 
+
+class SemanticError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
 class Cgen(Interpreter):
 	def visit(self, tree, *args, **kwargs):
 		f = getattr(self, tree.data)
@@ -29,8 +35,26 @@ class Cgen(Interpreter):
     ### Cgen methods
 	def program(self, tree, *args, **kwargs):
 		symbol_table = kwargs.get('symbol_table')
-		code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
+
+		try:
+			code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
 		
+		except SemanticError as err:
+			# TODO check
+			code = """
+			.text
+			.globl main
+
+			main:
+			la $a0 , errorMsg
+			addi $v0 , $zero, 4
+			syscall
+			jr $ra
+
+			.data
+			errorMsg: .asciiz "Semantic Error"
+			""".replace("\t\t\t","\t")
+
 		return code
 		
 	def	decl(self, tree, *args, **kwargs):
@@ -146,7 +170,7 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			# TODO nooo what to do now
-			raise Exception('semantic error')
+			raise SemanticError
 		
 		# TODO check if we can add this type
 
@@ -247,6 +271,7 @@ class Cgen(Interpreter):
 		return tree.children[0].value
 
 
+	def less(self, tree, *args, **kwargs):
 
 
 def generate_tac(code):
