@@ -19,8 +19,12 @@ class SemanticError(Exception):
 	def __str__(self) -> str:
 		return f"l{self.line}-c{self.col}:: {self.message}"
 
+def IncLabels():
+	Cgen.labels +=1
+	return Cgen.labels
 
 class Cgen(Interpreter):
+	labels = 0
 	def visit(self, tree, *args, **kwargs):
 		f = getattr(self, tree.data)
 		wrapper = getattr(f, 'visit_wrapper', None)
@@ -482,6 +486,40 @@ class Cgen(Interpreter):
 
 		stack.append(Variable(type_=Type.get_type_by_name('bool')))
 		return code
+
+	def read_line(self, tree, *args, **kwargs):
+		l1 = IncLabels()
+		l2 = IncLabels()
+		l3 = IncLabels()
+		code = f"""
+				### read Line
+				li $v0, 9
+				li $a0, 1000
+				syscall #store space
+				sub $sp, $sp, 8
+				sw $v0, 0($sp)
+				move $a0, $v0
+				li $a1, 1000
+				li $v0, 8
+				syscall #read line
+				lw $a0, 0($sp)
+				line_{l1}:
+					lb $t0, 0($a0)
+					beq $t0, 0, end_line_{l1}
+					bne $t0, 10, remover_{l2}
+					li $t2, 0
+					sb $t2, 0($a0)
+				remover_{l2}:
+					bne $t0, 13, remover_{l3}
+					li $t2, 0
+					sb $t2, 0($a0)
+				remover_{l3}:
+					addi $a0, $a0, 1
+					j line_{l1}
+				end_line_{l1}:
+					
+				""".replace("\t\t\t", "")
+		stack.append(Variable(Type.get_type_by_name('string')))
 
 
 def generate_tac(code):
