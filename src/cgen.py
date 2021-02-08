@@ -186,12 +186,8 @@ class Cgen(Interpreter):
 			# TODO nooo what to do now
 			raise SemanticError
 		
-		# TODO check if we can add this type
-
-		# TODO string
-		# TODO double
-
-		code += f"""
+		elif var1.type_.name == "int":
+			code += f"""
 				### add
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
@@ -199,6 +195,71 @@ class Cgen(Interpreter):
 				sw $t2, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
+
+		elif var1.type_.name == "double":
+			code += f"""
+				### add
+				l.d $f1, 0($sp)
+				l.d $f2, 4($sp)
+				add.d $f3, $f2, $f1
+				s.d $f3, 4($sp) 
+				addi $sp, $sp, 4
+				""".replace("\t\t\t\t", "\t")
+		
+		elif var1.type_.name == "string":
+			# TODO
+			pass
+		elif  var1.type_.name == "array":
+			# TODO
+			pass
+		else:
+			raise SemanticError
+
+
+
+		stack.append(Variable(type_=var1.type_))
+		return code
+
+	def sub(self, tree, *args, **kwargs):
+		code = ''
+		code += self.visit(tree.children[0],**kwargs)
+		var1 = stack.pop()
+		code += self.visit(tree.children[1],**kwargs)
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			# TODO nooo what to do now
+			raise SemanticError
+		
+		elif var1.type_.name == "int":
+			code += f"""
+				### sub
+				lw $t0, 0($sp)
+				lw $t1, 4($sp)
+				sub $t2, $t1, $t0
+				sw $t2, 4($sp) 
+				addi $sp, $sp, 4
+				""".replace("\t\t\t\t", "\t")
+
+		elif var1.type_.name == "double":
+			code += f"""
+				### sub
+				l.d $f1, 0($sp)
+				l.d $f2, 4($sp)
+				sub.d $f3, $f2, $f1
+				s.d $f3, 4($sp) 
+				addi $sp, $sp, 4
+				""".replace("\t\t\t\t", "\t")
+
+		elif var1.type_.name == "string":
+			# TODO
+			pass
+		elif  var1.type_.name == "array":
+			# TODO
+			pass
+		else:
+			raise SemanticError
+
 
 		stack.append(Variable(type_=var1.type_))
 		return code
