@@ -696,7 +696,7 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
 
-	def itob(self,tree):
+	def btoi(self,tree):
 		code = self.visit(tree.children[1])
 		var1 = stack.pop()
 
