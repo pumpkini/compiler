@@ -696,6 +696,28 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
 
+	def itob(self,tree):
+		code = self.visit(tree.children[1])
+		var1 = stack.pop()
+
+		if var1.type_.name != 'bool':
+			raise SemanticError('variable type is not bool in \'btoi\'', tree=tree)
+
+		l1 = IncLabels()
+		code += f"""
+				btoi_{l1}:
+					la $t0, 0($sp)
+					beq $t0, 0, set_zero_{l1}
+					addi $t0, $zero, 1
+					sw $t0, 0($sp)
+				set_zero_{l1}:
+					mov $t0, $zero
+					sw $t0, 0($sp)
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
+		return code
+
+
 	def if_stmt(self, tree):
 		
 		expr_code = self.visit(tree.children[1])
