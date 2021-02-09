@@ -130,10 +130,12 @@ class ParentVisitor(Visitor):
 stack = [] 
 
 class SymbolTableVisitor(Interpreter):
-	""" Each Node set children SymbolTables, 
-	if defining a method make sure to set children symbol tables
-	and visiting children
-	default gives every child (non token) parent symbol table"""
+	"""
+	Each Node set it's children SymbolTables. 
+	If defining a method make sure to set all children symbol tables
+	and visit children. default gives every child (non token) parent
+	symbol table
+	"""
 
 
 	def __default__(self, tree):
@@ -183,10 +185,6 @@ class SymbolTableVisitor(Interpreter):
 		body_symbol_table = SymbolTable(parent=formals_symbol_table)
 		tree.children[3].symbol_table = body_symbol_table
 		self.visit(tree.children[3])
-
-
-		if tree.symbol_table.find_func(func_name):
-			raise SemanticError(f"function {func_name} already exist in scope", tree=tree)
 
 		tree.symbol_table.add_func(Function(
 				name = func_name,
