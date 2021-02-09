@@ -99,16 +99,8 @@ class Cgen(Interpreter):
 		return code
 
 	def variable(self, tree):
-		type_name = self.visit(tree.children[0])
-		var_name = tree.children[1].value
-
-		# TODO add types in symbol table/ scope / or what ever 
-		type_ = Type.get_type_by_name(type_name)
-
-		if not type_:
-			# TODO
-			raise Exception(f"NOOOOO {type_name} is not in types")
-		
+		type_ = self.visit(tree.children[0])
+		var_name = tree.children[1].value		
 
 		size = 1
 		total_size = size * type_.size
@@ -116,7 +108,6 @@ class Cgen(Interpreter):
 		variable = tree.symbol_table.find_var(var_name)
 	
 		variable.size = size
-		variable.type_ = type_
 		variable.address = IncDataPointer(total_size)
 	
 		return ""	
@@ -162,7 +153,7 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'add\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'add\'', tree=tree)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -192,7 +183,7 @@ class Cgen(Interpreter):
 			# TODO
 			pass
 		else:
-			raise SemanticError('types are not suitable for \'add\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('types are not suitable for \'add\'', tree=tree)
 
 		stack.append(Variable(type_=var1.type_))
 		return code
@@ -208,7 +199,7 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'sub\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'sub\'', tree=tree)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -231,7 +222,7 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 
 		else:
-			raise SemanticError('types are not suitable for \'sub\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('types are not suitable for \'sub\'', tree=tree)
 
 		stack.append(Variable(type_=var1.type_))
 		return code
@@ -245,7 +236,7 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'mul\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'mul\'', tree=tree)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -268,7 +259,7 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 		
 		else:
-			raise SemanticError('types are not suitable for \'mul\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('types are not suitable for \'mul\'', tree=tree)
 
 		stack.append(Variable(type_=var1.type_))
 		return code
@@ -283,7 +274,7 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'div\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'div\'', tree=tree)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -306,7 +297,7 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 		
 		else:
-			raise SemanticError('types are not suitable for \'div\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('types are not suitable for \'div\'', tree=tree)
 
 		stack.append(Variable(type_=var1.type_))
 		return code
@@ -321,7 +312,7 @@ class Cgen(Interpreter):
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'mod\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'mod\'', tree=tree)
 		
 		elif var1.type_.name == "int":
 			code += f"""
@@ -335,7 +326,7 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 		
 		else:
-			raise SemanticError('types are not suitable for \'mod\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('types are not suitable for \'mod\'', tree=tree)
 
 		stack.append(Variable(type_=var1.type_))
 		return code
@@ -365,7 +356,7 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 				#TODO check
 		else:
-			raise SemanticError('types are not suitable for \'neg\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('types are not suitable for \'neg\'', tree=tree)
 
 		stack.append(Variable(type_=var.type_))
 		return code
@@ -411,7 +402,7 @@ class Cgen(Interpreter):
 		code = ''
 		if constant_type == 'INTCONSTANT':
 			value = int(tree.children[0].value.lower())
-			type_ = Type.get_type_by_name('int')
+			type_ = tree.symbol_table.find_type('int')
 			
 			# TODO for hex
 
@@ -426,7 +417,7 @@ class Cgen(Interpreter):
 
 		if constant_type == 'DOUBLECONSTANT':
 			value = tree.children[0].value.lower()
-			type_ = Type.get_type_by_name('double')
+			type_ = tree.symbol_table.find_type('double')
 			if 'e' in value:
 				# TODO 
 				pass
@@ -441,7 +432,7 @@ class Cgen(Interpreter):
 
 		if constant_type == 'BOOLCONSTANT':
 			value = 1 if tree.children[0].value else 0
-			type_ = Type.get_type_by_name('bool')
+			type_ = tree.symbol_table.find_type('bool')
 
 			code = f"""
 				### constant bool
@@ -514,7 +505,12 @@ class Cgen(Interpreter):
 		return code
 
 	def type(self, tree):
-		return tree.children[0].value
+		type_name = tree.children[0].value
+		type_ = tree.symbol_table.find_type(type_name)
+
+		if not type_:
+			raise SemanticError("Type not in scope",tree=tree)
+		return type_
 
 
 	def boolean_expr(self, tree):
@@ -526,10 +522,10 @@ class Cgen(Interpreter):
 
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'boolean_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'boolean_expr\'', tree=tree)
 
 		if var1.type_.name != 'int' and var1.type_.name != 'double':
-			raise SemanticError('variables type are not double or int in \'boolean_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('variables type are not double or int in \'boolean_expr\'', tree=tree)
 
 		operand = tree.children[1].value
 
@@ -562,7 +558,7 @@ class Cgen(Interpreter):
 			# TODO for double
 			pass
 
-		stack.append(Variable(type_=Type.get_type_by_name('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
 		
 	
@@ -575,10 +571,10 @@ class Cgen(Interpreter):
 
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'logical_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('var1 type != var2 type in \'logical_expr\'', tree=tree)
 
 		if var1.type_.name != 'bool':
-			raise SemanticError('variables type are not bool in \'logical_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('variables type are not bool in \'logical_expr\'', tree=tree)
 
 		operand = tree.children[1].value
 
@@ -598,7 +594,7 @@ class Cgen(Interpreter):
 				addi $sp, $sp, 4
 				""".replace("\t\t\t", "")
 
-		stack.append(Variable(type_=Type.get_type_by_name('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
 
 	def not_expr(self, tree):
@@ -607,7 +603,7 @@ class Cgen(Interpreter):
 		var1 = stack.pop()
 
 		if var1.type_.name != 'bool':
-			raise SemanticError('variable type is not bool in \'not_expr\'', line=tree.meta.line, col=tree.meta.column)
+			raise SemanticError('variable type is not bool in \'not_expr\'', tree=tree)
 
 		code += f"""
 				### not_expr
@@ -616,7 +612,7 @@ class Cgen(Interpreter):
 				sw $t1, 0($sp) 
 				""".replace("\t\t\t", "")
 
-		stack.append(Variable(type_=Type.get_type_by_name('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
 
 	def read_line(self, tree):
@@ -651,7 +647,7 @@ class Cgen(Interpreter):
 				end_line_{l1}:
 					
 				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=Type.get_type_by_name('string')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('string')))
 		return code
 
 	def itod(self, tree):
@@ -667,7 +663,7 @@ class Cgen(Interpreter):
 					cvt.d.w $f0, $f0
 					s.d $f0, 0($sp)
 				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=Type.get_type_by_name('double')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('double')))
 		return code
 	def dtoi(self, tree):
 		code = self.visit(tree.children[1])
@@ -739,12 +735,20 @@ class Cgen(Interpreter):
 
 
 
+
+def add_initial_types(symbol_table):
+	symbol_table.add_type(Type("int",4))
+	symbol_table.add_type(Type("double",4))
+	symbol_table.add_type(Type("bool",4))
+	symbol_table.add_type(Type("string",1))
+	symbol_table.add_type(Type("void",0))
+
+
 def generate_tac(code):
 	logger.setLevel(logging.DEBUG)
 	grammer_path = Path(__file__).parent
 	grammer_file = grammer_path / 'grammer.lark'
 	parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr", propagate_positions=True)
-	init()
 
 	try:
 		tree = parser.parse(code)
@@ -757,9 +761,10 @@ def generate_tac(code):
 	try:
 		ParentVisitor().visit_topdown(tree)
 		tree.symbol_table = SymbolTable()
+		add_initial_types(tree.symbol_table)
 		SymbolTableVisitor().visit_topdown(tree)
 		mips_code = Cgen().visit(tree)
-		# return 'mips_code'
+
 	except SemanticError as err:
 		print(err)
 		# TODO check
@@ -779,13 +784,6 @@ def generate_tac(code):
 
 	return mips_code
 
-
-def init():
-	Type("int",4)
-	Type("double",4)
-	Type("bool",4)
-	Type("string",1)
-	Type("void",0)
 
 
 

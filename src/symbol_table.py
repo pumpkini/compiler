@@ -4,30 +4,30 @@ from lark import Tree
 
 
 class Type():
-	types = {}
-	types_index = {}
-	def __init__(self, name, size):
+	# types = {}
+	# types_index = {}
+	def __init__(self, name, size=None):
 		self.name = name
 		self.size = size
-		self.index = len(Type.types)
-		Type.types[name] = self
-		Type.types_index[self.index] = name
+		# self.index = len(Type.types)
+		# Type.types[name] = self
+		# Type.types_index[self.index] = name
 
-	@classmethod
-	def get_type_by_name(cls, name):
-		if name in cls.types:
-			return cls.types[name]
+	# @classmethod
+	# def get_type_by_name(cls, name):
+	# 	if name in cls.types:
+	# 		return cls.types[name]
 
-		return None # Type not found
+	# 	return None # Type not found
 
-	@classmethod
-	def get_type_by_index(cls, index):
-		if index not in cls.types_index:
-			return None # Type not found
+	# @classmethod
+	# def get_type_by_index(cls, index):
+	# 	if index not in cls.types_index:
+	# 		return None # Type not found
 		
-		name = cls.types_index[index]
+	# 	name = cls.types_index[index]
 		
-		return cls.get_type_by_name(name)
+	# 	return cls.get_type_by_name(name)
 
 
 
@@ -60,26 +60,34 @@ class SymbolTable():
 	def __init__(self, parent=None):
 		self.variables = {}     # dict {name: Variable}
 		self.functions = {}     # dict {name: Function}
+		self.types = {}			# dict {name: Type}
 		self.parent = parent
 		SymbolTable.symbol_tables.append(self)
 
 
-	def find_var(self, variable_name):
-		if variable_name in self.variables:
-			return self.variables[variable_name]
+	def find_var(self, name):
+		if name in self.variables:
+			return self.variables[name]
 		if self.parent:
-			return self.parent.find_var(variable_name)
+			return self.parent.find_var(name)
 
 		return None # Varriable not found
 
-	def find_func(self, func_name):
-		if func_name in self.variables:
-			return self.functions[func_name]
+	def find_func(self, name):
+		if name in self.functions:
+			return self.functions[name]
 		if self.parent:
-			return self.parent.find_func(func_name)
+			return self.parent.find_func(name)
 
 		return None # Varriable not found
 
+	def find_type(self, name):
+		if name in self.types:
+			return self.types[name]
+		if self.parent:
+			return self.parent.find_type(name)
+
+		return None # Varriable not found		
 
 	def get_index(self):
 		return SymbolTable.symbol_tables.index(self)
@@ -87,6 +95,23 @@ class SymbolTable():
 	def __str__(self) -> str:
 		return f"SYMBOLYABLE: {self.get_index()} PARENT: {self.parent.get_index() if self.parent else -1}\n\tVARIABLES: {[v.__str__() for v in self.variables.values()]}\n\tFUNCTIONS: {[f.__str__() for f in self.functions]}"
 
+	def add_var(self, var:Variable, tree=None):
+		if self.find_var(var.name):
+			raise SemanticError('Variable already exist in scope', tree=tree)
+		
+		self.variables[var.name] = var
+
+	def add_func(self, func:Function, tree=None):
+		if self.find_var(func.name):
+			raise SemanticError('Function already exist in scope', tree=tree)
+
+		self.functions[func.name] = func
+
+	def add_type(self, type_:Type, tree=None):
+		if self.find_var(type_.name):
+			raise SemanticError('Type already  exist in scope', tree=tree)
+
+		self.types[type_.name] = type_
 
 
 
@@ -98,6 +123,10 @@ class ParentVisitor(Visitor):
 				subtree.parent = tree
 
 
+
+
+### stack contains last type:Type visited, remember to pop from stack
+# also remember to push into stack :)
 stack = [] 
 
 class SymbolTableVisitor(Interpreter):
@@ -105,11 +134,6 @@ class SymbolTableVisitor(Interpreter):
 	if defining a method make sure to set children symbol tables
 	and visiting children
 	default gives every child (non token) parent symbol table"""
-
-	def __init__(self) -> None:
-		### stack contains last type visited, remember to pop from stack
-		
-		super().__init__()
 
 
 	def __default__(self, tree):
@@ -122,17 +146,17 @@ class SymbolTableVisitor(Interpreter):
 	
 	def type(self, tree):
 		type_ = tree.children[0].value
-		stack.append(type_)
+		stack.append(Type(type_))
 	
 
 	def array_type(self, tree):
 		# TODO
 		stack.append("?")
-		
 
 
 	def function_decl(self, tree):
 		# type 
+		tree.children[0].symbol_table = tree.symbol_table
 		self.visit(tree.children[0])
 		type_ = stack.pop()
 
@@ -162,35 +186,35 @@ class SymbolTableVisitor(Interpreter):
 
 
 		if tree.symbol_table.find_func(func_name):
-			raise SemanticError(f"function {func_name} already exist in scope")
+			raise SemanticError(f"function {func_name} already exist in scope", tree=tree)
 
-		tree.symbol_table.functions[func_name] = Function(
+		tree.symbol_table.add_func(Function(
 				name = func_name,
 				type_ = type_,
 				arguments = formals
-		)
+		),tree)
 	
 
 	def variable(self, tree):
+		
+		tree.children[0].symbol_table = tree.symbol_table
 		self.visit(tree.children[0])
 		type_ = stack.pop()
 
 		var_name = tree.children[1].value
 
-		if tree.symbol_table.find_var(var_name):
-			raise SemanticError(f"variable {var_name} already exist in scope")
-
+		
 
 		# TODO what to do with size and addr
 		# size = 1
 		# total_size = size * type_.size
 
-		tree.symbol_table.variables[var_name] = Variable(
+		tree.symbol_table.add_var(Variable(
 				name=var_name,
 				type_=type_,
 				# address=DATA_POINTER,
 				# size=size
-				)
+				),tree)
 		
 		# We need type later (e.g. in formals of funtions)
 		stack.append(type_)
