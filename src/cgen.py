@@ -2,131 +2,86 @@ import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
 from decimal import Decimal
-
-from SymbolTable import Function, SymbolTable, Variable, Type
-
 from pathlib import Path
 
-DATA_POINTER = 0
+from symbol_table import Function, SymbolTable, Variable, Type, SymbolTableVisitor, ParentVisitor
+from utils import SemanticError
+
+
 stack = []
 
 
-class SemanticError(Exception):
-	def __init__(self, message="", line=None, col=None):
-		self.message = message
-		self.line = line
-		self.col = col
-
-	def __str__(self) -> str:
-		return f"l{self.line}-c{self.col}:: {self.message}"
-
 def IncLabels():
 	Cgen.labels+=1
-	return Cgen.labels;
+	return Cgen.labels
+
+
+def IncDataPointer(size):
+	cur = Cgen.data_pointer
+	Cgen.data_pointer += size
+	return cur
 
 class Cgen(Interpreter):
 	labels = 0
-	def visit(self, tree, *args, **kwargs):
-		f = getattr(self, tree.data)
-		wrapper = getattr(f, 'visit_wrapper', None)
-		if wrapper is not None:
-			return f.visit_wrapper(f, tree.data, tree.children, tree.meta, *args, **kwargs)
-		else:
-			return f(tree, *args, **kwargs)
+	data_pointer = 0
+
+
+	def program(self, tree):
 	
-	def visit_children(self, tree, *args, **kwargs):
-		return [self.visit(child, *args, **kwargs) if isinstance(child, Tree) else child
-				for child in tree.children]
+		code = '\n'.join(self.visit_children(tree))
 	
-	def __default__(self, tree, *args, **kwargs):
-		return self.visit_children(tree, *args, **kwargs)
+		code += """
 
+		### function: Print_bool(a0: boolean_value)
+		print_bool: 
+			beq $a0, $zero, print_bool_false
+			b print_bool_true
 
-	### Cgen methods
-	def program(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
-
-		try:
-			code = '\n'.join(self.visit_children(tree, symbol_table = symbol_table))
-		
-			code += """
-
-			### function: Print_bool(a0: boolean_value)
-			print_bool: 
-				beq $a0, $zero, print_bool_false
-				b print_bool_true
-
-			print_bool_false:
-				la $a0, falseStr
-				li $v0, 4	# sys call for print string 
-				syscall
-				b print_bool_end
-
-			print_bool_true:
-				la $a0, trueStr
-				li $v0, 4	# sys call for print string
-				syscall
-				b print_bool_end
-
-			print_bool_end:
-				jr $ra
-
-			""".replace("\t\t\t","")
-
-			code += """
-			.data
-			falseStr: .asciiz "false"
-			trueStr: .asciiz "true"
-			""".replace("\t\t\t","")
-
-		except SemanticError as err:
-			print(err)
-			# TODO check
-			code = """
-			.text
-			.globl main
-
-			main:
-			la $a0 , errorMsg
-			addi $v0 , $zero, 4
+		print_bool_false:
+			la $a0, falseStr
+			li $v0, 4	# sys call for print string 
 			syscall
+			b print_bool_end
+
+		print_bool_true:
+			la $a0, trueStr
+			li $v0, 4	# sys call for print string
+			syscall
+			b print_bool_end
+
+		print_bool_end:
 			jr $ra
 
-			.data
-			errorMsg: .asciiz "Semantic Error"
-			""".replace("\t\t\t","\t")
+		""".replace("\t\t\t","")
+
+		code += """
+		.data
+		falseStr: .asciiz "false"
+		trueStr: .asciiz "true"
+		""".replace("\t\t\t","")
 
 		return code
 		
-	def	decl(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
+	def	decl(self, tree):
+
 		code = ''
 		for decl in tree.children:
 			if decl.data == 'function_decl':
-				code += self.visit(decl,tree, symbol_table = symbol_table)
+				code += self.visit(decl)
 		
 		return code
 	
-	def function_decl(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
-
-		type_ = self.visit(tree.children[0],**kwargs)
+	def function_decl(self, tree):
+		type_ = self.visit(tree.children[0])
 		func_name = tree.children[1].value
-		formals = self.visit(tree.children[2],**kwargs)
+		formals = self.visit(tree.children[2])
 
-		symbol_table.functions[func_name] = Function(
-				name = func_name,
-				type_ = type_,
-				arguments = formals
-		)
-
-		statement_block = self.visit(tree.children[3],**kwargs)
+		statement_block = self.visit(tree.children[3])
 
 		# TODO check return type
 		# TODO do something with arguments
 		# TODO save registers, do sth with fp ra
 		
-
 		code = f"""
 {func_name}:
 	{statement_block}
@@ -135,59 +90,46 @@ class Cgen(Interpreter):
 
 		return code
 
-	def statement_block(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
-
-		new_symbol_table = SymbolTable(parent=symbol_table)
-
-		children_code = self.visit_children(tree, symbol_table = new_symbol_table)
+	def statement_block(self, tree):
+		children_code = self.visit_children(tree)
 		children_code = [c if c else '' for c in children_code]
 
 		code = '\n'.join(children_code)
 
 		return code
 
-	def variable(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
-
-		type_name = self.visit(tree.children[0],**kwargs)
+	def variable(self, tree):
+		type_name = self.visit(tree.children[0])
 		var_name = tree.children[1].value
 
+		# TODO add types in symbol table/ scope / or what ever 
 		type_ = Type.get_type_by_name(type_name)
 
 		if not type_:
+			# TODO
 			raise Exception(f"NOOOOO {type_name} is not in types")
-
 		
-		global DATA_POINTER
-
-		if var_name in symbol_table.variables:
-			### TODO var_name already exist in this scope. error?
-			pass
 
 		size = 1
 		total_size = size * type_.size
 
-		symbol_table.variables[var_name] = Variable(
-				name=var_name,
-				type_=type_,
-				address=DATA_POINTER,
-				size=size
-				)
-			
-		DATA_POINTER += total_size
-		
+		variable = tree.symbol_table.find_var(var_name)
+	
+		variable.size = size
+		variable.type_ = type_
+		variable.address = IncDataPointer(total_size)
+	
 		return ""	
 
-	def expr_assign(self, tree, *args, **kwargs):
+	def expr_assign(self, tree):
 		global stack
 
 		code = ''
 		
-		self.visit(tree.children[0],**kwargs)
+		self.visit(tree.children[0])
 		variable = stack.pop()
 
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[1])
 
 		if not variable:
 			# TODO variable not found noooo
@@ -212,15 +154,14 @@ class Cgen(Interpreter):
 		return code
 
 
-	def add(self, tree, *args, **kwargs):
+	def add(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
 			raise SemanticError('var1 type != var2 type in \'add\'', line=tree.meta.line, col=tree.meta.column)
 		
 		elif var1.type_.name == "int":
@@ -259,15 +200,14 @@ class Cgen(Interpreter):
 
 
 
-	def sub(self, tree, *args, **kwargs):
+	def sub(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
 			raise SemanticError('var1 type != var2 type in \'sub\'', line=tree.meta.line, col=tree.meta.column)
 		
 		elif var1.type_.name == "int":
@@ -297,15 +237,14 @@ class Cgen(Interpreter):
 		return code
 
 
-	def mul(self, tree, *args, **kwargs):
+	def mul(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
 			raise SemanticError('var1 type != var2 type in \'mul\'', line=tree.meta.line, col=tree.meta.column)
 		
 		elif var1.type_.name == "int":
@@ -336,15 +275,14 @@ class Cgen(Interpreter):
 
 
 
-	def div(self, tree, *args, **kwargs):
+	def div(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
 			raise SemanticError('var1 type != var2 type in \'div\'', line=tree.meta.line, col=tree.meta.column)
 		
 		elif var1.type_.name == "int":
@@ -375,15 +313,14 @@ class Cgen(Interpreter):
 
 
 
-	def mod(self, tree, *args, **kwargs):
+	def mod(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			print(var1.type_.name, var2.type_.name)
 			raise SemanticError('var1 type != var2 type in \'mod\'', line=tree.meta.line, col=tree.meta.column)
 		
 		elif var1.type_.name == "int":
@@ -406,9 +343,9 @@ class Cgen(Interpreter):
 
 
 
-	def neg(self, tree, *args, **kwargs):
+	def neg(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var = stack.pop()
 		
 		if var.type_.name == "int":
@@ -424,7 +361,7 @@ class Cgen(Interpreter):
 				### neg double
 				l.d $f2, 0($sp)
 				neg.d $f2, $f2
-            	s.d $f2, 0($sp)
+				s.d $f2, 0($sp)
 				""".replace("\t\t\t\t", "\t")
 				#TODO check
 		else:
@@ -435,15 +372,18 @@ class Cgen(Interpreter):
 
 
 
-	
-		
-	def ident(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
 
+	# TODO  other l_value expr_ident expr_expr
+	def ident(self, tree):
 		var_name = tree.children[0].value
-		variable = symbol_table.find_var(var_name)
-
+		variable = tree.symbol_table.find_var(var_name)
+		
+		if not variable:
+			raise SemanticError('ident not found', tree=tree)
+		
 		stack.append(variable)
+
+		code = ''
 		if variable.type_.name == "int":
 			code = f"""
 					### ident
@@ -461,50 +401,66 @@ class Cgen(Interpreter):
 		return code
 		
 
-	def constant(self, tree, *args, **kwargs):
+	def constant(self, tree):
 		# TODO for other types
 
 		constant_type = tree.children[0].type
 		value = "????"
 		type_ = "????"
 
+		code = ''
 		if constant_type == 'INTCONSTANT':
-			value = int(tree.children[0].value)
+			value = int(tree.children[0].value.lower())
 			type_ = Type.get_type_by_name('int')
+			
+			# TODO for hex
+
 			code = f"""
-				### constant
+				### constant int
 				li $t0, {value}
 				addi $sp, $sp, -4
 				sw $t0, 0($sp)
-				""".replace("\t\t\t\t","\t")
+				""".replace("\t\t\t","")
+
+			
 
 		if constant_type == 'DOUBLECONSTANT':
 			value = tree.children[0].value.lower()
 			type_ = Type.get_type_by_name('double')
 			if 'e' in value:
-				# TODO
+				# TODO 
 				pass
 			else:
 				value = Decimal(value)
 				code = f"""
-					### constant
+					### constant double
 					li.d $f2, {value}
 					addi $sp, $sp, -4
 					s.d $f2, 0($sp)
-					""".replace("\t\t\t\t\t","\t")
+					""".replace("\t\t\t\t","")
+
+		if constant_type == 'BOOLCONSTANT':
+			value = 1 if tree.children[0].value else 0
+			type_ = Type.get_type_by_name('bool')
+
+			code = f"""
+				### constant bool
+				li $t0, {value}
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t","")
+
 
 		stack.append(Variable(type_=type_))
 		return code
 		
-	def print_stmt(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
-
+		
+	def print_stmt(self, tree):
 		code = f"""\t### print stmt begin"""
 
 		stack_size_initial = len(stack)
 
-		actuals = self.visit(tree.children[1],**kwargs)
-		print(actuals)
+		actuals = self.visit(tree.children[1])
 		code += actuals
 		
 		if len(stack) == stack_size_initial:
@@ -552,20 +508,20 @@ class Cgen(Interpreter):
 
 		return code
 
-	def actuals(self, tree, *args, **kwargs):
-		actuals = self.visit_children(tree, args,**kwargs)
+	def actuals(self, tree):
+		actuals = self.visit_children(tree)
 		code = '\n'.join(actuals)
 		return code
 
-	def type(self, tree, *args, **kwargs):
+	def type(self, tree):
 		return tree.children[0].value
 
 
-	def boolean_expr(self, tree, *args, **kwargs):
+	def boolean_expr(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[2],**kwargs)
+		code += self.visit(tree.children[2])
 		var2 = stack.pop()
 
 
@@ -610,11 +566,11 @@ class Cgen(Interpreter):
 		return code
 		
 	
-	def logical_expr(self, tree, *args, **kwargs):
+	def logical_expr(self, tree):
 		code = ''
-		code += self.visit(tree.children[0],**kwargs)
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[2],**kwargs)
+		code += self.visit(tree.children[2])
 		var2 = stack.pop()
 
 
@@ -645,9 +601,9 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=Type.get_type_by_name('bool')))
 		return code
 
-	def not_expr(self, tree, *args, **kwargs):
+	def not_expr(self, tree):
 		code = ''
-		code += self.visit(tree.children[1],**kwargs)
+		code += self.visit(tree.children[1])
 		var1 = stack.pop()
 
 		if var1.type_.name != 'bool':
@@ -663,7 +619,7 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=Type.get_type_by_name('bool')))
 		return code
 
-	def read_line(self, tree, *args, **kwargs):
+	def read_line(self, tree):
 		l1 = IncLabels()
 		l2 = IncLabels()
 		l3 = IncLabels()
@@ -698,8 +654,8 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=Type.get_type_by_name('string')))
 		return code
 
-	def itod(self, tree, *args, **kwargs):
-		code = self.visit(tree.children[1], **kwargs)
+	def itod(self, tree):
+		code = self.visit(tree.children[1])
 		var1 = stack.pop()
 
 		if var1.type_.name != 'int':
@@ -713,8 +669,8 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=Type.get_type_by_name('double')))
 		return code
-	def dtoi(self, tree, *args, **kwargs):
-		code = self.visit(tree.children[1], **kwargs)
+	def dtoi(self, tree):
+		code = self.visit(tree.children[1])
 		var1 = stack.pop()
 
 		if var1.type_.name != 'double':
@@ -728,21 +684,16 @@ class Cgen(Interpreter):
 				sw $a0, 0($sp)
 				""".replace("\t\t\t", "")
 
-	def if_stmt(self, tree, *args, **kwargs):
+	def if_stmt(self, tree):
 		
-		symbol_table = kwargs.get('symbol_table')
-
-		statement_symbol_table = SymbolTable(parent=symbol_table)
-
-		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+		expr_code = self.visit(tree.children[1])
 		expr_variable = stack.pop()
 
-		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+		statement_code = self.visit(tree.children[2])
 
 		else_code = ''
 		if len(tree.children) > 3:
-			else_symbol_table = SymbolTable(parent=symbol_table)
-			else_code = self.visit(tree.children[4], symbol_table=else_symbol_table)
+			else_code = self.visit(tree.children[4])
 		
 
 		label_num = IncLabels()
@@ -763,15 +714,11 @@ class Cgen(Interpreter):
 
 		return code
 
-	def while_stmt(self, tree, *args, **kwargs):
-		symbol_table = kwargs.get('symbol_table')
-
-		statement_symbol_table = SymbolTable(parent=symbol_table)
-
-		expr_code = self.visit(tree.children[1], symbol_table=symbol_table)
+	def while_stmt(self, tree):
+		expr_code = self.visit(tree.children[1])
 		expr_variable = stack.pop()
 
-		statement_code = self.visit(tree.children[2], symbol_table=statement_symbol_table)
+		statement_code = self.visit(tree.children[2])
 
 		label_num = IncLabels()
 
@@ -790,23 +737,48 @@ class Cgen(Interpreter):
 
 		return code
 
+
+
 def generate_tac(code):
 	logger.setLevel(logging.DEBUG)
 	grammer_path = Path(__file__).parent
 	grammer_file = grammer_path / 'grammer.lark'
 	parser = Lark.open(grammer_file, rel_to=__file__, parser="lalr", propagate_positions=True)
 	init()
+
 	try:
 		tree = parser.parse(code)
 		print(tree.pretty())
-		root_symbol_table = SymbolTable()
-		mips_code = Cgen().visit(tree,  symbol_table= root_symbol_table)
-		return mips_code
 	except ParseError as e:
 		# TODO
 		print(e)
-		pass
-	
+		return e
+
+	try:
+		ParentVisitor().visit_topdown(tree)
+		tree.symbol_table = SymbolTable()
+		SymbolTableVisitor().visit_topdown(tree)
+		mips_code = Cgen().visit(tree)
+		# return 'mips_code'
+	except SemanticError as err:
+		print(err)
+		# TODO check
+		mips_code = """
+		.text
+		.globl main
+
+		main:
+		la $a0 , errorMsg
+		addi $v0 , $zero, 4
+		syscall
+		jr $ra
+
+		.data
+		errorMsg: .asciiz "Semantic Error"
+		""".replace("\t\t\t","\t")
+
+	return mips_code
+
 
 def init():
 	Type("int",4)
@@ -819,13 +791,14 @@ def init():
 
 if __name__ == "__main__":
 	# inputfile = 'example.d'
+	
 	inputfile = '../tmp/in1.d'
 	code = ""
 	with open(inputfile, "r") as input_file:
 		code = input_file.read()
 	code = generate_tac(code)
 	print("#### code ")
-	print(code)
+	# print(code)
 
 		
 	output_file = open("../tmp/res.mips", "w")
