@@ -679,6 +679,21 @@ class Cgen(Interpreter):
 				mfc1 $t0, $f0
 				sw $a0, 0($sp)
 				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
+	def itob(self,tree):
+		code = self.visit(tree.children[1])
+		var1 = stack.pop()
+
+		if var1.type_.name != 'int':
+			raise SemanticError('variable type is not integer in \'itob\'', tree=tree)
+
+		code += f"""
+				la $t0, 0($sp)
+				li $t1, 0
+				sne $t0, $t1, $t0
+				sw $t0, 0($sp)
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 
 	def if_stmt(self, tree):
 		
