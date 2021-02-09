@@ -694,6 +694,7 @@ class Cgen(Interpreter):
 				sw $t0, 0($sp)
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		return code
 
 	def if_stmt(self, tree):
 		
@@ -811,7 +812,7 @@ if __name__ == "__main__":
 		code = input_file.read()
 	code = generate_tac(code)
 	print("#### code ")
-	# print(code)
+	print(code)
 
 		
 	output_file = open("../tmp/res.mips", "w")
