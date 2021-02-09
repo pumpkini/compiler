@@ -52,7 +52,7 @@ class Cgen(Interpreter):
 		print_bool_end:
 			jr $ra
 
-		""".replace("\t\t\t","")
+		""".replace("\t\t","")
 
 		code += """
 		.data
