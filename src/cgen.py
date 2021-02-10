@@ -549,48 +549,140 @@ class Cgen(Interpreter):
 		return type_
 
 
-	def boolean_expr(self, tree):
+	def boolean_or(self, tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[2])
+		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-		
-		operand = tree.children[1].value
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'boolean_or\'', tree=tree)
+
+		if var1.type_.name != 'bool':
+			raise SemanticError('variables type are not bool \'boolean_or\'', tree=tree)
+
+		code += f"""
+				### boolean_or
+				lw $t1, 0($sp)
+				lw $t0, 4($sp)
+				or $t2, $t0, $t1
+				sw $t2, 4($sp) 
+				#greater_equal
+				addi $sp, $sp, 4
+				""".replace("\t\t\t", "")
+
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		return code
+
+
+	def boolean_and(self,tree):
+		code = ''
+		code += self.visit(tree.children[0])
+		var1 = stack.pop()
+		code += self.visit(tree.children[1])
+		var2 = stack.pop()
 
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'boolean_expr\'', tree=tree)
+			raise SemanticError('var1 type != var2 type in \'boolean_and\'', tree=tree)
 
-		if operand != '==' and  operand != '!=' and var1.type_.name != 'int' and var1.type_.name != 'double':
-			raise SemanticError('variables type are not double or int in \'boolean_expr\'', tree=tree)
+		if var1.type_.name != 'bool':
+			raise SemanticError('variables type are not bool \'boolean_and\'', tree=tree)
 
+		code += f"""
+				### boolean_and
+				lw $t1, 0($sp)
+				lw $t0, 4($sp)
+				and $t2, $t0, $t1
+				sw $t2, 4($sp) 
+				#greater_equal
+				addi $sp, $sp, 4
+				""".replace("\t\t\t", "")
+
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		return code
+
+
+
+	def equal(self,tree):
+		code = ''
+		code += self.visit(tree.children[0])
+		var1 = stack.pop()
+		code += self.visit(tree.children[1])
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'equal\'', tree=tree)
+		#TODO check for null 
 		
-
 		if var1.type_.name == 'int' or var1.type_.name == 'bool':
 			# t0 operand 1
 			# t1 operand 2
-			compare_line = ""
-			if operand == '<':
-				compare_line ="slt $t2, $t0, $t1"
-			elif operand == '>':
-				compare_line = "sgt $t2, $t0, $t1"
-			elif operand == '<=':
-				compare_line = "sge $t2, $t1, $t0"
-			elif operand == '>=':
-				compare_line = "sge $t2, $t0, $t1"
-
-			# TODO check these for other types if needed
-			elif operand == '==':
-				compare_line = "seq $t2, $t0, $t1"
-			elif operand == '!=':
-				compare_line = "sne $t2, $t0, $t1"
-
 			code += f"""
-					### boolean_expr
+					### equal
 					lw $t1, 0($sp)
 					lw $t0, 4($sp)
-					{compare_line}
+					seq $t2, $t0, $t1
+					sw $t2, 4($sp) 
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t")
+		else:
+			# TODO for double and objects
+			pass
+
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		return code
+
+		
+	def nequal(self,tree):
+		code = ''
+		code += self.visit(tree.children[0])
+		var1 = stack.pop()
+		code += self.visit(tree.children[1])
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'nequal\'', tree=tree)
+		#TODO check for null 
+		
+		if var1.type_.name == 'int' or var1.type_.name == 'bool':
+			# t0 operand 1
+			# t1 operand 2
+			code += f"""
+					### nequal
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					sne $t2, $t0, $t1
+					sw $t2, 4($sp) 
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t")
+		else:
+			# TODO for double and objects
+			pass
+
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		return code
+
+	
+	def lt(self,tree):
+		code = ''
+		code += self.visit(tree.children[0])
+		var1 = stack.pop()
+		code += self.visit(tree.children[1])
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'lt\'', tree=tree)
+		#TODO check for null 
+		
+		if var1.type_.name == 'int':
+			# t0 operand 1
+			# t1 operand 2
+			code += f"""
+					### lt
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					slt $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
@@ -600,42 +692,191 @@ class Cgen(Interpreter):
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
-		
-	
-	def logical_expr(self, tree):
+
+
+	def le(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
-		code += self.visit(tree.children[2])
+		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-
 		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'logical_expr\'', tree=tree)
-
-		if var1.type_.name != 'bool':
-			raise SemanticError('variables type are not bool in \'logical_expr\'', tree=tree)
-
-		operand = tree.children[1].value
-
-		compare_line = ""
-		if operand == '||':
-			compare_line = "or $t2, $t0, $t1"
-		elif operand == '&&':
-			compare_line = "and $t2, $t0, $t1"
-
-		code += f"""
-				### logical_expr
-				lw $t1, 0($sp)
-				lw $t0, 4($sp)
-				{compare_line}
-				sw $t2, 4($sp) 
-				#greater_equal
-				addi $sp, $sp, 4
-				""".replace("\t\t\t", "")
+			raise SemanticError('var1 type != var2 type in \'le\'', tree=tree)
+		#TODO check for null 
+		
+		if var1.type_.name == 'int':
+			# t0 operand 1
+			# t1 operand 2
+			code += f"""
+					### le
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					sle $t2, $t0, $t1
+					sw $t2, 4($sp) 
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t")
+		else:
+			# TODO for double
+			pass
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
+
+
+
+
+	def gt(self,tree):
+		code = ''
+		code += self.visit(tree.children[0])
+		var1 = stack.pop()
+		code += self.visit(tree.children[1])
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'gt\'', tree=tree)
+		#TODO check for null 
+		
+		if var1.type_.name == 'int':
+			# t0 operand 1
+			# t1 operand 2
+			code += f"""
+					### gt
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					sgt $t2, $t0, $t1
+					sw $t2, 4($sp) 
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t")
+		else:
+			# TODO for double
+			pass
+
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		return code
+
+
+
+	def ge(self,tree):
+		code = ''
+		code += self.visit(tree.children[0])
+		var1 = stack.pop()
+		code += self.visit(tree.children[1])
+		var2 = stack.pop()
+
+		if var1.type_.name != var2.type_.name:
+			raise SemanticError('var1 type != var2 type in \'ge\'', tree=tree)
+		#TODO check for null 
+		
+		if var1.type_.name == 'int':
+			# t0 operand 1
+			# t1 operand 2
+			code += f"""
+					### ge
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					sge $t2, $t0, $t1
+					sw $t2, 4($sp) 
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t")
+		else:
+			# TODO for double
+			pass
+
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		return code
+
+
+
+
+
+	# def boolean_expr(self, tree):
+	# 	code = ''
+	# 	code += self.visit(tree.children[0])
+	# 	var1 = stack.pop()
+	# 	code += self.visit(tree.children[2])
+	# 	var2 = stack.pop()
+
+		
+	# 	operand = tree.children[1].value
+
+	# 	if var1.type_.name != var2.type_.name:
+	# 		raise SemanticError('var1 type != var2 type in \'boolean_expr\'', tree=tree)
+
+	# 	if operand != '==' and  operand != '!=' and var1.type_.name != 'int' and var1.type_.name != 'double':
+	# 		raise SemanticError('variables type are not double or int in \'boolean_expr\'', tree=tree)
+
+		
+
+	# 	if var1.type_.name == 'int' or var1.type_.name == 'bool':
+	# 		# t0 operand 1
+	# 		# t1 operand 2
+	# 		compare_line = ""
+	# 		if operand == '<':
+	# 			compare_line ="slt $t2, $t0, $t1"
+	# 		elif operand == '>':
+	# 			compare_line = "sgt $t2, $t0, $t1"
+	# 		elif operand == '<=':
+	# 			compare_line = "sge $t2, $t1, $t0"
+	# 		elif operand == '>=':
+	# 			compare_line = "sge $t2, $t0, $t1"
+
+	# 		# TODO check these for other types if needed
+	# 		elif operand == '==':
+	# 			compare_line = "seq $t2, $t0, $t1"
+	# 		elif operand == '!=':
+	# 			compare_line = "sne $t2, $t0, $t1"
+
+	# 		code += f"""
+	# 				### boolean_expr
+	# 				lw $t1, 0($sp)
+	# 				lw $t0, 4($sp)
+	# 				{compare_line}
+	# 				sw $t2, 4($sp) 
+	# 				addi $sp, $sp, 4
+	# 				""".replace("\t\t\t\t\t", "\t")
+	# 	else:
+	# 		# TODO for double
+	# 		pass
+
+	# 	stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+	# 	return code
+		
+	
+	# def logical_expr(self, tree):
+	# 	code = ''
+	# 	code += self.visit(tree.children[0])
+	# 	var1 = stack.pop()
+	# 	code += self.visit(tree.children[2])
+	# 	var2 = stack.pop()
+
+
+	# 	if var1.type_.name != var2.type_.name:
+	# 		raise SemanticError('var1 type != var2 type in \'logical_expr\'', tree=tree)
+
+	# 	if var1.type_.name != 'bool':
+	# 		raise SemanticError('variables type are not bool in \'logical_expr\'', tree=tree)
+
+	# 	operand = tree.children[1].value
+
+	# 	compare_line = ""
+	# 	if operand == '||':
+	# 		compare_line = "or $t2, $t0, $t1"
+	# 	elif operand == '&&':
+	# 		compare_line = "and $t2, $t0, $t1"
+
+	# 	code += f"""
+	# 			### logical_expr
+	# 			lw $t1, 0($sp)
+	# 			lw $t0, 4($sp)
+	# 			{compare_line}
+	# 			sw $t2, 4($sp) 
+	# 			#greater_equal
+	# 			addi $sp, $sp, 4
+	# 			""".replace("\t\t\t", "")
+
+	# 	stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+	# 	return code
 
 	def not_expr(self, tree):
 		code = ''
