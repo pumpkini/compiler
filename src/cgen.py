@@ -31,7 +31,6 @@ class Cgen(Interpreter):
 		code = '\n'.join(self.visit_children(tree))
 	
 		code += """
-
 		### function: Print_bool(a0: boolean_value)
 		print_bool: 
 			beq $a0, $zero, print_bool_false
@@ -52,12 +51,13 @@ class Cgen(Interpreter):
 		print_bool_end:
 			jr $ra
 
-		""".replace("\t\t","")
+		""".replace("\t\t\t","")
 
 		code += """
 		.data
 		falseStr: .asciiz "false"
 		trueStr: .asciiz "true"
+		newLineStr: .asciiz "\n"
 		""".replace("\t\t\t","")
 
 		return code
@@ -118,30 +118,28 @@ class Cgen(Interpreter):
 		code = ''
 		
 		self.visit(tree.children[0])
-		variable = stack.pop()
+		lvalue_var = stack.pop()
 
 		code += self.visit(tree.children[1])
+		expr_var = stack.pop()
 
-		if not variable:
-			# TODO variable not found noooo
-			return ''
-
-		# TODO check type of var and expr
-		if variable.type_.name == 'int':
+		if lvalue_var.type_.name != expr_var.type_.name:
+			raise SemanticError('lvalue type != expr type in \'expr_assign\'', tree=tree)
+		
+		if lvalue_var.type_.name == 'int':
 			code += f"""
 				### store
 				lw $t0, 0($sp)
-				sw $t0, {variable.address}($gp) 	
+				sw $t0, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 
-		elif variable.type_.name == 'double':
+		elif lvalue_var.type_.name == 'double':
 			code += f"""
 				### store
 				l.d $f2, 0($sp)
-				s.d $f2, {variable.address}($gp) 	
+				s.d $f2, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		
-		stack.pop()
 		return code
 
 
@@ -401,14 +399,17 @@ class Cgen(Interpreter):
 
 		code = ''
 		if constant_type == 'INTCONSTANT':
-			value = int(tree.children[0].value.lower())
+			value = tree.children[0].value.lower()
 			type_ = tree.symbol_table.find_type('int')
 			
-			# TODO for hex
+			base = 10
+			if '0x' in value:
+				base = 16
+			int_value = int(value, base)
 
 			code = f"""
 				### constant int
-				li $t0, {value}
+				li $t0, {int_value}
 				addi $sp, $sp, -4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t","")
@@ -493,6 +494,9 @@ class Cgen(Interpreter):
 
 
 		code += f"""
+				la $a0, newLineStr
+				li $v0, 4	# sys call for print string
+				syscall
 				addi $sp, $sp, {(len(stack) - stack_size_initial ) * 4}
 				### print stmt end
 				""".replace("\t\t\t\t","\t")
