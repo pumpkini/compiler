@@ -556,16 +556,18 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[2])
 		var2 = stack.pop()
 
+		
+		operand = tree.children[1].value
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'boolean_expr\'', tree=tree)
 
-		if var1.type_.name != 'int' and var1.type_.name != 'double':
+		if operand != '==' and  operand != '!=' and var1.type_.name != 'int' and var1.type_.name != 'double':
 			raise SemanticError('variables type are not double or int in \'boolean_expr\'', tree=tree)
 
-		operand = tree.children[1].value
+		
 
-		if var1.type_.name == 'int':
+		if var1.type_.name == 'int' or var1.type_.name == 'bool':
 			# t0 operand 1
 			# t1 operand 2
 			compare_line = ""
@@ -577,6 +579,8 @@ class Cgen(Interpreter):
 				compare_line = "sge $t2, $t1, $t0"
 			elif operand == '>=':
 				compare_line = "sge $t2, $t0, $t1"
+
+			# TODO check these for other types if needed
 			elif operand == '==':
 				compare_line = "seq $t2, $t0, $t1"
 			elif operand == '!=':

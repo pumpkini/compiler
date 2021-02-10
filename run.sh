@@ -1,8 +1,17 @@
 #!/bin/bash
+echo "
+Usage: 
+./run.sh [testdirectory]
+(default test_directory: tests/)
+Please end test_directory with /
+
+"
+
 OUTPUT_DIRECTORY="out/"
 TEST_DIRECTORY="tests/"
 REPORT_DIRECTORY="report/"
 SOURCE_DIRECTORY="src/"
+
 
 if [ "$#" -eq 1 ]; then
     TEST_DIRECTORY=$1
