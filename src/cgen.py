@@ -31,6 +31,7 @@ class Cgen(Interpreter):
 		code = '\n'.join(self.visit_children(tree))
 	
 		code += """
+
 		### function: Print_bool(a0: boolean_value)
 		print_bool: 
 			beq $a0, $zero, print_bool_false
@@ -51,14 +52,14 @@ class Cgen(Interpreter):
 		print_bool_end:
 			jr $ra
 
-		""".replace("\t\t\t","")
+		""".replace("\t\t","")
 
 		code += """
 		.data
 		falseStr: .asciiz "false"
 		trueStr: .asciiz "true"
-		newLineStr: .asciiz "\n"
-		""".replace("\t\t\t","")
+		newLineStr: .asciiz "\\n"
+		""".replace("\t\t","")
 
 		return code
 		
@@ -93,7 +94,7 @@ class Cgen(Interpreter):
 	def statement_block(self, tree):
 		children_code = self.visit_children(tree)
 		children_code = [c if c else '' for c in children_code]
-
+		print(children_code)
 		code = '\n'.join(children_code)
 
 		return code
@@ -126,17 +127,21 @@ class Cgen(Interpreter):
 		if lvalue_var.type_.name != expr_var.type_.name:
 			raise SemanticError('lvalue type != expr type in \'expr_assign\'', tree=tree)
 		
-		if lvalue_var.type_.name == 'int':
+		print("!", lvalue_var)
+		if lvalue_var.type_.name == 'int' or lvalue_var.type_.name == 'bool':
 			code += f"""
 				### store
 				lw $t0, 0($sp)
+				addi $sp, $sp, 4
 				sw $t0, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
+			print(code)
 
 		elif lvalue_var.type_.name == 'double':
 			code += f"""
 				### store
 				l.d $f2, 0($sp)
+				addi $sp, $sp, 4
 				s.d $f2, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 		
@@ -360,8 +365,6 @@ class Cgen(Interpreter):
 		return code
 
 
-
-
 	# TODO  other l_value expr_ident expr_expr
 	def ident(self, tree):
 		var_name = tree.children[0].value
@@ -373,7 +376,7 @@ class Cgen(Interpreter):
 		stack.append(variable)
 
 		code = ''
-		if variable.type_.name == "int":
+		if variable.type_.name == "int" or variable.type_.name == "bool":
 			code = f"""
 					### ident
 					lw $t0, {variable.address}($gp)
@@ -431,10 +434,11 @@ class Cgen(Interpreter):
 					s.d $f2, 0($sp)
 					""".replace("\t\t\t\t","")
 
-		if constant_type == 'BOOLCONSTANT':
-			value = 1 if tree.children[0].value else 0
-			type_ = tree.symbol_table.find_type('bool')
 
+		if constant_type == 'BOOLCONSTANT':
+			value = 1 if tree.children[0].value == 'true' else 0
+			type_ = tree.symbol_table.find_type('bool')
+			print("BOOOL", value, tree.children[0].value)
 			code = f"""
 				### constant bool
 				li $t0, {value}
@@ -470,7 +474,6 @@ class Cgen(Interpreter):
 					""".replace("\t\t\t\t\t","\t")	
 			
 			if var.type_.name  == 'bool':
-				# TODO  refactor this
 				code += f"""
 					### print bool	
 					lw $a0, {sp_offset}($sp)

@@ -13,6 +13,8 @@ class Type():
 		# Type.types[name] = self
 		# Type.types_index[self.index] = name
 
+	def __str__(self) -> str:
+		return f"<T-{self.name}-{self.size}>"
 	# @classmethod
 	# def get_type_by_name(cls, name):
 	# 	if name in cls.types:
@@ -39,7 +41,7 @@ class Variable():
 		self.size = size
 
 	def __str__(self) -> str:
-		return f"V-{self.name}-{self.type_}-{self.address}-{self.size}"
+		return f"<V-{self.name}-{self.type_}-{self.address}-{self.size}>"
 	
 
 class Function():
@@ -51,7 +53,7 @@ class Function():
 				self.arguments[key] = value     #dict {name : Type}
 
 	def __str__(self) -> str:
-		return f"F-{self.name}-{self.type_}-{self.arguments}"
+		return f"<F-{self.name}-{self.type_}-{self.arguments}>"
 	
 
 class SymbolTable():
