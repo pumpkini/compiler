@@ -445,6 +445,33 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t","")
 
 
+		if constant_type == 'STRINGCONSTANT':
+			value = tree.children[0].value[1:-1]
+			type_ = tree.symbol_table.find_type('string')
+
+			code = f"""
+				### constant string
+				li $v0, 9		# syscall for allocate byte
+				li $a0, {len(value) + 1}
+				syscall
+
+				move $s0, $v0		# s0: address of string
+				""".replace("\t\t\t","")
+
+			for i,c in enumerate(value):
+				code += f"""
+				li $t0, '{c}'
+				sb $t0, {i}($s0)
+				""".replace("\t\t\t","")
+
+			code += f"""
+				li $t0, 0	# add a null terminator
+				sb $t0, {len(value)}($s0)
+
+				addi $sp, $sp, -4
+				sw $s0, 0($sp)
+				""".replace("\t\t\t","")
+
 		stack.append(Variable(type_=type_))
 		return code
 		
@@ -466,7 +493,7 @@ class Cgen(Interpreter):
 			if var.type_.name  == 'int':
 				code += f"""
 					### print int	
-					li $v0, 1		# sys call for print integer 
+					li $v0, 1		# syscall for print integer 
 					lw $a0, {sp_offset}($sp)
 					syscall
 					""".replace("\t\t\t\t\t","\t")	
@@ -483,20 +510,24 @@ class Cgen(Interpreter):
 			if var.type_.name == 'double':
 				code += f"""
 					### print double	
-					li $v0, 3		# sys call for print double 
+					li $v0, 3		# syscall for print double 
 					l.d $f12, {sp_offset}($sp)
 					syscall
 					""".replace("\t\t\t\t\t","\t")
 
+			if var.type_.name == 'string':
+				code += f"""
+					### print string	
+					li $v0, 4		# syscall for print string 
+					lw $a0, {sp_offset}($sp)
+					syscall
+					""".replace("\t\t\t\t\t","\t")
 
 			sp_offset -= 4
 
-			# TODO other type
-
-
 		code += f"""
 				la $a0, newLineStr
-				li $v0, 4	# sys call for print string
+				li $v0, 4	# syscall for print string
 				syscall
 				addi $sp, $sp, {(len(stack) - stack_size_initial ) * 4}
 				### print stmt end
@@ -626,15 +657,15 @@ class Cgen(Interpreter):
 		l3 = IncLabels()
 		code = f"""
 				### read Line
-				li $v0, 9
+				li $v0, 9	# syscall for allocating bytes
 				li $a0, 1000
-				syscall #store space
+				syscall		
 				sub $sp, $sp, 8
 				sw $v0, 0($sp)
 				move $a0, $v0
 				li $a1, 1000
-				li $v0, 8
-				syscall #read line
+				li $v0, 8	# syscall for read string
+				syscall
 				lw $a0, 0($sp)
 				line_{l1}:
 					lb $t0, 0($a0)
@@ -783,7 +814,7 @@ def add_initial_types(symbol_table):
 	symbol_table.add_type(Type("int",4))
 	symbol_table.add_type(Type("double",4))
 	symbol_table.add_type(Type("bool",4))
-	symbol_table.add_type(Type("string",1))
+	symbol_table.add_type(Type("string",4))
 	symbol_table.add_type(Type("void",0))
 
 
