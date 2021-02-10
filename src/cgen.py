@@ -94,7 +94,6 @@ class Cgen(Interpreter):
 	def statement_block(self, tree):
 		children_code = self.visit_children(tree)
 		children_code = [c if c else '' for c in children_code]
-		print(children_code)
 		code = '\n'.join(children_code)
 
 		return code
@@ -127,7 +126,6 @@ class Cgen(Interpreter):
 		if lvalue_var.type_.name != expr_var.type_.name:
 			raise SemanticError('lvalue type != expr type in \'expr_assign\'', tree=tree)
 		
-		print("!", lvalue_var)
 		if lvalue_var.type_.name == 'int' or lvalue_var.type_.name == 'bool':
 			code += f"""
 				### store
@@ -135,7 +133,6 @@ class Cgen(Interpreter):
 				addi $sp, $sp, 4
 				sw $t0, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
-			print(code)
 
 		elif lvalue_var.type_.name == 'double':
 			code += f"""
@@ -405,40 +402,41 @@ class Cgen(Interpreter):
 			value = tree.children[0].value.lower()
 			type_ = tree.symbol_table.find_type('int')
 			
-			base = 10
-			if '0x' in value:
-				base = 16
-			int_value = int(value, base)
-
+			value = value.lstrip('0')
+			
 			code = f"""
 				### constant int
-				li $t0, {int_value}
+				li $t0, {value}
 				addi $sp, $sp, -4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t","")
-
 			
 
 		if constant_type == 'DOUBLECONSTANT':
 			value = tree.children[0].value.lower()
 			type_ = tree.symbol_table.find_type('double')
-			if 'e' in value:
-				# TODO 
-				pass
-			else:
-				value = Decimal(value)
-				code = f"""
-					### constant double
-					li.d $f2, {value}
-					addi $sp, $sp, -4
-					s.d $f2, 0($sp)
-					""".replace("\t\t\t\t","")
+
+			value = value.lstrip('0')
+
+			# handle 3.
+			if value[-1] == '.':
+				value = value + '0'
+
+			# handle 3.E2
+			if '.e' in value:
+				value = value.replace('.e', '.0e')
+
+			code = f"""
+				### constant double
+				li.d $f2, {value}
+				addi $sp, $sp, -4
+				s.d $f2, 0($sp)
+				""".replace("\t\t\t","")
 
 
 		if constant_type == 'BOOLCONSTANT':
 			value = 1 if tree.children[0].value == 'true' else 0
 			type_ = tree.symbol_table.find_type('bool')
-			print("BOOOL", value, tree.children[0].value)
 			code = f"""
 				### constant bool
 				li $t0, {value}
@@ -486,7 +484,7 @@ class Cgen(Interpreter):
 				code += f"""
 					### print double	
 					li $v0, 3		# sys call for print double 
-					l.d $f2, {sp_offset}($sp)
+					l.d $f12, {sp_offset}($sp)
 					syscall
 					""".replace("\t\t\t\t\t","\t")
 
