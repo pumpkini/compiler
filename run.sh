@@ -4,10 +4,14 @@ TEST_DIRECTORY="tests/"
 REPORT_DIRECTORY="report/"
 SOURCE_DIRECTORY="src/"
 
+if [ "$#" -eq 1 ]; then
+    TEST_DIRECTORY=$1
+fi
+
 mkdir -p $OUTPUT_DIRECTORY
 mkdir -p $REPORT_DIRECTORY
 
-cd ./tests
+cd $TEST_DIRECTORY
 
 prefix="t" ;
 dirlist=(`ls ${prefix}*.d`) ;
@@ -32,6 +36,7 @@ do
     if [ $? -eq 0 ]; then
         echo "Code Compiled Successfuly!"
 	spim -a -f "$OUTPUT_DIRECTORY$output_asm" < "$TEST_DIRECTORY$program_input" > "$OUTPUT_DIRECTORY$output_filename"
+    
 	if [ $? -eq 0 ]; then
 		echo "Code Executed Successfuly!"
 		if command -v python3; then

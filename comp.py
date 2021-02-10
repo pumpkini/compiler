@@ -29,7 +29,7 @@ def main(argv):
 	with open(inputfile1, "r") as input_file:
 		cntr = 0	
 		for line in input_file:
-			if cntr < 5 :
+			if cntr < 1:
 				cntr += 1
 				continue
 			l = line.strip()
