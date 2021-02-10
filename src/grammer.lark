@@ -68,7 +68,7 @@ print_stmt: PRINT "(" actuals ")" ";"
 ?expr : l_value "=" expr -> expr_assign | expr0
 ?expr0 : expr0 "||" expr1 -> boolean_or | expr1
 ?expr1 : expr1 "&&" expr2 -> boolean_and | expr2
-?expr2 : expr2 "!=" expr3 -> nequal | expr2 "==" expr3 -> equal | expr3
+?expr2 : expr2 "!=" expr3 -> neq | expr2 "==" expr3 -> eq | expr3
 ?expr3 : expr3 "<" expr4 -> lt | expr3 ">" expr4 -> gt | expr3 "<=" expr4 -> le  | expr3 ">=" expr4 -> ge | expr4
 ?expr4 : expr4 "+" expr5 -> add | expr4 "-" expr5 -> sub | expr5
 ?expr5 : expr5 "*" expr6 -> mul | expr5 "/" expr6 -> div | expr5 "%" expr6 -> mod | expr6

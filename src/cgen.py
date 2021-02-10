@@ -174,7 +174,6 @@ class Cgen(Interpreter):
 				s.d $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
-			# TODO what is wrong with thisss
 		
 		elif var1.type_.name == "string":
 			# TODO
@@ -346,7 +345,6 @@ class Cgen(Interpreter):
 				sub $t0, $zero, $t0
 				sw $t0, 0($sp) 
 				""".replace("\t\t\t\t", "\t")
-				#TODO check
 		elif var.type_.name == "double":
 			code += f"""
 				### neg double
@@ -354,7 +352,6 @@ class Cgen(Interpreter):
 				neg.d $f2, $f2
 				s.d $f2, 0($sp)
 				""".replace("\t\t\t\t", "\t")
-				#TODO check
 		else:
 			raise SemanticError('types are not suitable for \'neg\'', tree=tree)
 
@@ -568,7 +565,6 @@ class Cgen(Interpreter):
 				lw $t0, 4($sp)
 				or $t2, $t0, $t1
 				sw $t2, 4($sp) 
-				#greater_equal
 				addi $sp, $sp, 4
 				""".replace("\t\t\t", "")
 
@@ -595,7 +591,6 @@ class Cgen(Interpreter):
 				lw $t0, 4($sp)
 				and $t2, $t0, $t1
 				sw $t2, 4($sp) 
-				#greater_equal
 				addi $sp, $sp, 4
 				""".replace("\t\t\t", "")
 
@@ -604,7 +599,7 @@ class Cgen(Interpreter):
 
 
 
-	def equal(self,tree):
+	def eq(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
@@ -634,7 +629,7 @@ class Cgen(Interpreter):
 		return code
 
 		
-	def nequal(self,tree):
+	def neq(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
@@ -673,8 +668,7 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'lt\'', tree=tree)
-		#TODO check for null 
-		
+
 		if var1.type_.name == 'int':
 			# t0 operand 1
 			# t1 operand 2
@@ -687,7 +681,7 @@ class Cgen(Interpreter):
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
 		else:
-			# TODO for double
+			# TODO for double bclt
 			pass
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
