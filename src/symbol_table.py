@@ -234,8 +234,8 @@ class SymbolTableVisitor(Interpreter):
 		# else
 		if len(tree.children) > 3:
 			else_symbol_table = SymbolTable(parent=tree.symbol_table)
-			tree.children[3].symbol_table = else_symbol_table
-			self.visit(tree.children[3])
+			tree.children[4].symbol_table = else_symbol_table
+			self.visit(tree.children[4])
 
 
 	def while_stmt(self, tree):
