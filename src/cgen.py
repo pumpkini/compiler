@@ -860,10 +860,10 @@ class Cgen(Interpreter):
 					### ge
 					l.d $f2, 0($sp)
 					l.d $f4, 4($sp)
-					li $t0 , 1
+					li $t0 , 0
 					c.lt.d $f4, $f2
 					bc1t d_ge_{l1}
-					li $t0 , 0
+					li $t0 , 1
 				d_ge_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
@@ -1019,6 +1019,17 @@ class Cgen(Interpreter):
 					
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('string')))
+		return code
+
+	def read_integer(self, tree):
+		code = f"""
+				li $v0, 5
+    			syscall
+    			move $t0, $v0
+    			addi $sp, $sp, -4
+    			sw $t0, 0($sp)
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
 		return code
 
 
