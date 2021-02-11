@@ -989,6 +989,7 @@ class Cgen(Interpreter):
     			addi $sp, $sp, -4
     			sw $t0, 0($sp)
 				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
 		return code
 
 
