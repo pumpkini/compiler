@@ -1032,7 +1032,7 @@ class Cgen(Interpreter):
 
 	def not_expr(self, tree):
 		code = ''
-		code += self.visit(tree.children[1])
+		code += self.visit(tree.children[0])
 		var1 = stack.pop()
 
 		if var1.type_.name != 'bool':
