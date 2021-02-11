@@ -722,9 +722,26 @@ class Cgen(Interpreter):
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
+		elif var1.type_.name == 'double':
+			# f4 operand 1
+			# f2 operand 2
+			l1 = IncLabels()
+			code += f"""
+					### eq
+					l.s $f2, 0($sp)
+					l.s $f4, 4($sp)
+					li $t0 , 0
+					c.eq.s $f4, $f2
+					bc1f d_eq_{l1}
+					li $t0 , 1
+				d_eq_{l1}:
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+
+		# TODO for and objects
 		else:
-			# TODO for double and objects
-			pass
+			raise SemanticError('types are not suitable for \'eq\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
@@ -752,9 +769,25 @@ class Cgen(Interpreter):
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
+		elif var1.type_.name == 'double':
+			# f4 operand 1
+			# f2 operand 2
+			l1 = IncLabels()
+			code += f"""
+					### neq
+					l.s $f2, 0($sp)
+					l.s $f4, 4($sp)
+					li $t0 , 1
+					c.eq.s $f4, $f2
+					bc1f d_neq_{l1}
+					li $t0 , 0
+				d_neq_{l1}:
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+		# TODO for objects
 		else:
-			# TODO for double and objects
-			pass
+			raise SemanticError('types are not suitable for \'neq\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
