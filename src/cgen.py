@@ -972,7 +972,6 @@ class Cgen(Interpreter):
 		return code
 
 
-
 	def not_expr(self, tree):
 		code = ''
 		code += self.visit(tree.children[0])
