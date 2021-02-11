@@ -774,21 +774,20 @@ class Cgen(Interpreter):
 					### gt
 					l.d $f2, 0($sp)
 					l.d $f4, 4($sp)
-					li $t0 , 0
-					c.le.d $f2, $f4
-					bc1t d_gt_{l1}
 					li $t0 , 1
+					c.le.d $f4, $f2
+					bc1t d_gt_{l1}
+					li $t0 , 0
 				d_gt_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
 		
 		else:
-			raise SemanticError('types are not suitable for \'le\'', tree=tree)
+			raise SemanticError('types are not suitable for \'gt\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
-
 
 
 	def ge(self,tree):
@@ -800,7 +799,6 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'ge\'', tree=tree)
-		#TODO check for null 
 		
 		if var1.type_.name == 'int':
 			# t0 operand 1
@@ -813,9 +811,24 @@ class Cgen(Interpreter):
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
+		elif var1.type_.name == 'double':
+			l1 = IncLabels()
+			code += f"""
+					### ge
+					l.d $f2, 0($sp)
+					l.d $f4, 4($sp)
+					li $t0 , 0
+					c.lt.d $f2, $f4
+					bc1t d_ge_{l1}
+					li $t0 , 1
+				d_ge_{l1}:
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+		
 		else:
-			# TODO for double
-			pass
+			raise SemanticError('types are not suitable for \'ge\'', tree=tree)
+
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
