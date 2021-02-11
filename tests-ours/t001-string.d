@@ -1,7 +1,9 @@
 int main() {
     string a;
     string b;
-    a = ReadLine();
+    string c;
+    a = "saba";
     b = " va rosta va mehraneh";
-    Print(a, b);
+    c = " are happy";
+    Print(a + b, c + " or not");
 }

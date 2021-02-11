@@ -10,7 +10,7 @@ from utils import SemanticError
 
 stack = []
 
-constant_strings = set()
+constant_strings = []
 
 def IncLabels():
 	Cgen.labels+=1
@@ -65,8 +65,8 @@ class Cgen(Interpreter):
 		newLineStr: .asciiz "\\n"
 		""".replace("\t\t","")
 
-		for s in constant_strings:
-			code_data_seg += f"constantStr_{s}: .asciiz \"{s}\"\n"
+		for i, s in enumerate(constant_strings):
+			code_data_seg += f"constantStr_{i}: .asciiz \"{s}\"\n"
 		
 		code_data_seg += "\n"
 
@@ -132,10 +132,12 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		expr_var = stack.pop()
 
+		
 		if lvalue_var.type_.name != expr_var.type_.name:
 			raise SemanticError('lvalue type != expr type in \'expr_assign\'', tree=tree)
 		
-		if lvalue_var.type_.name == 'int' or lvalue_var.type_.name == 'bool':
+		if lvalue_var.type_.name == 'int' or\
+			 lvalue_var.type_.name == 'bool':
 			code += f"""
 				### store
 				lw $t0, 0($sp)
@@ -150,6 +152,16 @@ class Cgen(Interpreter):
 				addi $sp, $sp, 4
 				s.d $f2, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
+
+		elif lvalue_var.type_.name == 'string':
+			code += f"""
+				### store
+				lw $t0, 0($sp)
+				addi $sp, $sp, 4
+				sw $t0, {lvalue_var.address}($gp) 	
+				""".replace("\t\t\t\t","\t")
+			
+			lvalue_var.size = expr_var.size
 		
 		return code
 
@@ -160,6 +172,8 @@ class Cgen(Interpreter):
 		var1 = stack.pop()
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
+
+		size = 1
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'add\'', tree=tree)
@@ -185,15 +199,50 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 		
 		elif var1.type_.name == "string":
-			# TODO
+			size = var1.size + var2.size - 1
+			label_number = IncLabels()
+			code += f"""
+				### add string
+				lw $s2, 0($sp)
+				lw $s1, 4($sp)
+					
+				li $v0, 9		# syscall for allocate byte
+				li $a0, {size}
+				syscall
+
+				move $s0, $v0		# s0: address of new string
+
+			 	sw $s0, 4($sp) 
+				addi $sp, $sp, 4 
+
+			add_str_op1_{label_number}:
+				lb $t1, 0($s1)
+				beq $t1, $zero, add_str_op2_{label_number} 
+				sb $t1, 0($s0)
+				addi $s1, $s1, 1
+				addi $s0, $s0, 1
+				b add_str_op1_{label_number}
+
+			add_str_op2_{label_number}:
+				lb $t1, 0($s2)
+				sb $t1, 0($s0)
+				beq $t1, $zero, add_str_end_{label_number} 
+				addi $s2, $s2, 1
+				addi $s0, $s0, 1
+				b add_str_op2_{label_number}
+			
+			add_str_end_{label_number}:
+
+				""".replace("\t\t\t","")
 			pass
+
 		elif  var1.type_.name == "array":
 			# TODO
 			pass
 		else:
 			raise SemanticError('types are not suitable for \'add\'', tree=tree)
 
-		stack.append(Variable(type_=var1.type_))
+		stack.append(Variable(type_=var1.type_, size=size))
 		return code
 
 
@@ -370,36 +419,36 @@ class Cgen(Interpreter):
 	def ident(self, tree):
 		var_name = tree.children[0].value
 		variable = tree.symbol_table.find_var(var_name)
-		
 		if not variable:
 			raise SemanticError('ident not found', tree=tree)
 		
 		stack.append(variable)
 
 		code = ''
-		if variable.type_.name == "int" or variable.type_.name == "bool":
-			code = f"""
-					### ident
-					lw $t0, {variable.address}($gp)
-					addi $sp, $sp, -4
-					sw $t0, 0($sp)
-					""".replace("\t\t\t\t\t", "\t")
-		elif variable.type_.name == "double":
+		if variable.type_.name == "double":
 			code = f"""
 					### ident
 					l.d $f2, {variable.address}($gp)
 					addi $sp, $sp, -4
 					s.d $f2, 0($sp)
 					""".replace("\t\t\t\t\t", "\t")
+		else:
+			code = f"""
+					### ident
+					lw $t0, {variable.address}($gp)
+					addi $sp, $sp, -4
+					sw $t0, 0($sp)
+					""".replace("\t\t\t\t\t", "\t")
+		
 		return code
 		
 
+	# TODO do we need null?
 	def constant(self, tree):
-		# TODO for other types
-
 		constant_type = tree.children[0].type
 		value = "????"
 		type_ = "????"
+		size = 1
 
 		code = ''
 		if constant_type == 'INTCONSTANT':
@@ -456,14 +505,16 @@ class Cgen(Interpreter):
 			value = tree.children[0].value[1:-1]
 			type_ = tree.symbol_table.find_type('string')
 
-			constant_strings.add(value)
+			constant_string_label = len(constant_strings)
+			constant_strings.append(value)
 
+			size = len(value) + 1
 			label_number = IncLabels()
 
 			code = f"""
 				### constant string
 				li $v0, 9		# syscall for allocate byte
-				li $a0, {len(value) + 1}
+				li $a0, {size}
 				syscall
 
 				move $s0, $v0		# s0: address of string
@@ -471,8 +522,7 @@ class Cgen(Interpreter):
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
 
-				la $s1, constantStr_{value}
-				
+				la $s1, constantStr_{constant_string_label}
 				li $t1, 0
 
 			constant_str_{label_number}:
@@ -487,32 +537,7 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t","")
 
-			
-			# code = f"""
-			# 	### constant string
-			# 	li $v0, 9		# syscall for allocate byte
-			# 	li $a0, {len(value) + 1}
-			# 	syscall
-
-			# 	move $s0, $v0		# s0: address of string
-			# 	""".replace("\t\t\t","")
-
-			# for i,c in enumerate(value):
-			# 	code += f"""
-			# 	li $t0, '{c}'
-			# 	sb $t0, {i}($s0)
-			# 	""".replace("\t\t\t","")
-
-			# code += f"""
-			# 	li $t0, 0	# add a null terminator
-			# 	sb $t0, {len(value)}($s0)
-
-			# 	addi $sp, $sp, -4
-			# 	sw $s0, 0($sp)
-			# 	""".replace("\t\t\t","")
-
-
-		stack.append(Variable(type_=type_))
+		stack.append(Variable(type_=type_, size=size))
 		return code
 		
 		
@@ -1024,10 +1049,10 @@ class Cgen(Interpreter):
 	def read_integer(self, tree):
 		code = f"""
 				li $v0, 5
-    			syscall
-    			move $t0, $v0
-    			addi $sp, $sp, -4
-    			sw $t0, 0($sp)
+				syscall
+				move $t0, $v0
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
 		return code
