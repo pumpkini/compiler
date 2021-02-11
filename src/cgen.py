@@ -36,6 +36,7 @@ class Cgen(Interpreter):
 		code += """
 
 		### function: Print_bool(a0: boolean_value)
+
 		print_bool: 
 			beq $a0, $zero, print_bool_false
 			b print_bool_true
@@ -53,6 +54,23 @@ class Cgen(Interpreter):
 			b print_bool_end
 
 		print_bool_end:
+			jr $ra
+
+
+		### function: String_length(a0: string_addr) $v0: length without zero terminated char
+
+		string_length: 
+			li $v0, 0
+			move $t1, $a0
+		
+		string_length_begin:
+			lb $t2, 0($t1)
+			beq $t2, $zero, string_length_end
+			addi $v0, $v0, 1
+			addi $t1, $t1, 1
+			b string_length_begin
+
+		string_length_end:
 			jr $ra
 
 		""".replace("\t\t","")
@@ -173,7 +191,6 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-		size = 1
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'add\'', tree=tree)
@@ -199,15 +216,32 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t", "\t")
 		
 		elif var1.type_.name == "string":
-			size = var1.size + var2.size - 1
 			label_number = IncLabels()
 			code += f"""
 				### add string
 				lw $s2, 0($sp)
+				
+				move $a0, $s2
+				move $s0, $ra 	#save ra
+				jal string_length
+				move $ra, $s0 	#restore ra
+
+				move $s4, $v0	# s4: length of operand 2
+
 				lw $s1, 4($sp)
-					
+
+				move $a0, $s1
+				move $s0, $ra 	#save ra
+				jal string_length
+				move $ra, $s0 	#restore ra
+
+				move $s3, $v0	# s3: length of operand 1
+
+				add $t0, $s3, $s4
+				addi $t0, $t0, 1	# t0: length(op1) + length(op2) + 1(for null termination)
+
 				li $v0, 9		# syscall for allocate byte
-				li $a0, {size}
+				move $a0, $t0
 				syscall
 
 				move $s0, $v0		# s0: address of new string
@@ -242,7 +276,7 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'add\'', tree=tree)
 
-		stack.append(Variable(type_=var1.type_, size=size))
+		stack.append(Variable(type_=var1.type_))
 		return code
 
 
@@ -448,7 +482,6 @@ class Cgen(Interpreter):
 		constant_type = tree.children[0].type
 		value = "????"
 		type_ = "????"
-		size = 1
 
 		code = ''
 		if constant_type == 'INTCONSTANT':
@@ -537,7 +570,7 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t","")
 
-		stack.append(Variable(type_=type_, size=size))
+		stack.append(Variable(type_=type_))
 		return code
 		
 		
