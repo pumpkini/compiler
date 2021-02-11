@@ -9,8 +9,9 @@ int main() {
     c = 9;
 
     d = (a > b) != (c < b);
+
     Print(d);
     Print(a >= c);
-    Print((a + b) > c);
-    //Print(a + b > c); TODO fix this
+    Print(c < a + b);
+    Print(a + b > c);
 }
