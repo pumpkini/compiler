@@ -74,14 +74,14 @@ print_stmt: PRINT "(" actuals ")" ";"
 ?expr1: expr1 "&&" expr2 -> boolean_and 
     | expr2
 
-?expr2: expr2 "!=" expr3 -> neq 
-    | expr2 "==" expr3 -> eq 
+?expr2: expr2 "!=" expr3 -> not_equal 
+    | expr2 "==" expr3 -> equal 
     | expr3
 
-?expr3: expr3 "<" expr4 -> lt 
-    | expr3 ">" expr4 -> gt 
-    | expr3 "<=" expr4 -> le  
-    | expr3 ">=" expr4 -> ge 
+?expr3: expr3 "<" expr4 -> less_than 
+    | expr3 ">" expr4 -> greater_than 
+    | expr3 "<=" expr4 -> less_equal 
+    | expr3 ">=" expr4 -> greater_equal 
     | expr4
 
 ?expr4: expr4 "+" expr5 -> add 
