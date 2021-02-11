@@ -10,6 +10,7 @@ from utils import SemanticError
 
 stack = []
 
+constant_strings = set()
 
 def IncLabels():
 	Cgen.labels+=1
@@ -27,8 +28,10 @@ class Cgen(Interpreter):
 
 
 	def program(self, tree):
-	
-		code = '\n'.join(self.visit_children(tree))
+		
+		code = "\n.text"
+
+		code += '\n'.join(self.visit_children(tree))
 	
 		code += """
 
@@ -54,14 +57,20 @@ class Cgen(Interpreter):
 
 		""".replace("\t\t","")
 
-		code += """
+		code_data_seg = """
 		.data
+
 		falseStr: .asciiz "false"
 		trueStr: .asciiz "true"
 		newLineStr: .asciiz "\\n"
 		""".replace("\t\t","")
 
-		return code
+		for s in constant_strings:
+			code_data_seg += f"constantStr_{s}: .asciiz \"{s}\"\n"
+		
+		code_data_seg += "\n"
+
+		return code_data_seg + code
 		
 	def	decl(self, tree):
 
@@ -186,8 +195,6 @@ class Cgen(Interpreter):
 
 		stack.append(Variable(type_=var1.type_))
 		return code
-
-
 
 
 	def sub(self, tree):
@@ -449,6 +456,10 @@ class Cgen(Interpreter):
 			value = tree.children[0].value[1:-1]
 			type_ = tree.symbol_table.find_type('string')
 
+			constant_strings.add(value)
+
+			label_number = IncLabels()
+
 			code = f"""
 				### constant string
 				li $v0, 9		# syscall for allocate byte
@@ -456,21 +467,50 @@ class Cgen(Interpreter):
 				syscall
 
 				move $s0, $v0		# s0: address of string
-				""".replace("\t\t\t","")
-
-			for i,c in enumerate(value):
-				code += f"""
-				li $t0, '{c}'
-				sb $t0, {i}($s0)
-				""".replace("\t\t\t","")
-
-			code += f"""
-				li $t0, 0	# add a null terminator
-				sb $t0, {len(value)}($s0)
 
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
+
+				la $s1, constantStr_{value}
+				
+				li $t1, 0
+
+			constant_str_{label_number}:
+				lb $t1, 0($s1)
+				sb $t1, 0($s0)
+				beq $t1, $zero, constant_str_end_{label_number} 
+				addi $s1, $s1, 1
+				addi $s0, $s0, 1
+				b constant_str_{label_number}
+
+			constant_str_end_{label_number}:
+
 				""".replace("\t\t\t","")
+
+			
+			# code = f"""
+			# 	### constant string
+			# 	li $v0, 9		# syscall for allocate byte
+			# 	li $a0, {len(value) + 1}
+			# 	syscall
+
+			# 	move $s0, $v0		# s0: address of string
+			# 	""".replace("\t\t\t","")
+
+			# for i,c in enumerate(value):
+			# 	code += f"""
+			# 	li $t0, '{c}'
+			# 	sb $t0, {i}($s0)
+			# 	""".replace("\t\t\t","")
+
+			# code += f"""
+			# 	li $t0, 0	# add a null terminator
+			# 	sb $t0, {len(value)}($s0)
+
+			# 	addi $sp, $sp, -4
+			# 	sw $s0, 0($sp)
+			# 	""".replace("\t\t\t","")
+
 
 		stack.append(Variable(type_=type_))
 		return code
