@@ -1,5 +1,7 @@
 
 import sys, getopt
+import platform
+
 def main(argv):
 
 	try:
@@ -23,13 +25,20 @@ def main(argv):
 		elif opt in ("-o", "--output"):
 			outputfile = arg
 
+	count_of_unneeded_lines = 0
+	if platform.system() == 'Darwin':
+		count_of_unneeded_lines = 1
+	elif platform.system() == 'Linux':
+		count_of_unneeded_lines = 5
+
+
 	input1_lines = []
 	input2_lines = []
 	back_str = ""
 	with open(inputfile1, "r") as input_file:
 		cntr = 0	
 		for line in input_file:
-			if cntr < 1:
+			if cntr < count_of_unneeded_lines:
 				cntr += 1
 				continue
 			l = line.strip()
