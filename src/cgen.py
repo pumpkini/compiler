@@ -731,7 +731,7 @@ class Cgen(Interpreter):
 					l.d $f4, 4($sp)
 					li $t0 , 0
 					c.lt.d $f4, $f2
-					bc1t d_lt_{l1}
+					bc1f d_lt_{l1}
 					li $t0 , 1
 				d_lt_{l1}:
 					sw $t0, 4($sp)
