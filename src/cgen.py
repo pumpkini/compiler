@@ -818,7 +818,7 @@ class Cgen(Interpreter):
 					l.d $f2, 0($sp)
 					l.d $f4, 4($sp)
 					li $t0 , 0
-					c.lt.d $f2, $f4
+					c.le.d $f2, $f4
 					bc1t d_ge_{l1}
 					li $t0 , 1
 				d_ge_{l1}:
