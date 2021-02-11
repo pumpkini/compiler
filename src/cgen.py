@@ -817,10 +817,10 @@ class Cgen(Interpreter):
 					### ge
 					l.d $f2, 0($sp)
 					l.d $f4, 4($sp)
-					li $t0 , 0
-					c.le.d $f2, $f4
-					bc1t d_ge_{l1}
 					li $t0 , 1
+					c.lt.d $f4, $f2
+					bc1t d_ge_{l1}
+					li $t0 , 0
 				d_ge_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
