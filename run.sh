@@ -45,7 +45,12 @@ do
     if [ $? -eq 0 ]; then
         echo "Code Compiled Successfuly!"
 	spim -a -f "$OUTPUT_DIRECTORY$output_asm" < "$TEST_DIRECTORY$program_input" > "$OUTPUT_DIRECTORY$output_filename"
-    
+    echo ""
+    echo "MIPS"
+    cat "$OUTPUT_DIRECTORY$output_asm"
+    echo ""
+    echo "RESULT"
+    cat "$OUTPUT_DIRECTORY$output_filename"
 	if [ $? -eq 0 ]; then
 		echo "Code Executed Successfuly!"
 		if command -v python3; then
@@ -74,3 +79,11 @@ done
 echo "Passed : $NUMBER_OF_PASSED"
 echo "Failed : $NUMBER_OF_FAILED"
 
+
+if [ "$#" -eq 1 ]; then
+    zero=0;
+    if [ "$NUMBER_OF_FAILED" -eq "$zero" ]; then
+        exit 0;
+    fi
+    exit 1;
+fi
