@@ -700,7 +700,7 @@ class Cgen(Interpreter):
 
 
 
-	def eq(self,tree):
+	def equal(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
@@ -747,7 +747,7 @@ class Cgen(Interpreter):
 		return code
 
 		
-	def neq(self,tree):
+	def not_equal(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
@@ -793,7 +793,7 @@ class Cgen(Interpreter):
 		return code
 
 	
-	def lt(self,tree):
+	def less_than(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
@@ -838,7 +838,7 @@ class Cgen(Interpreter):
 		return code
 
 
-	def le(self,tree):
+	def less_equal(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
@@ -885,7 +885,7 @@ class Cgen(Interpreter):
 
 
 
-	def gt(self,tree):
+	def greater_than(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
@@ -928,7 +928,7 @@ class Cgen(Interpreter):
 		return code
 
 
-	def ge(self,tree):
+	def greater_equal(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
 		var1 = stack.pop()
