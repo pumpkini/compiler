@@ -681,7 +681,19 @@ class Cgen(Interpreter):
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
 		else:
-			# TODO for double bclt
+			l1 = IncLabels()
+			code += f"""
+					### lt
+					l.d $f0, 0($sp)
+					l.d $f1, 4($sp)
+					li $t0 , 1
+					c.lt.d $f1, $f0
+					bcl1t d_lt_{l1}
+					li $t0 , 0
+				d_lt_{l1}:
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t")
 			pass
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
