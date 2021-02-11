@@ -74,3 +74,11 @@ done
 echo "Passed : $NUMBER_OF_PASSED"
 echo "Failed : $NUMBER_OF_FAILED"
 
+
+if [ "$#" -eq 1 ]; then
+    zero=0;
+    if [ "$NUMBER_OF_FAILED" -eq "$zero" ]; then
+        exit 0;
+    fi
+    exit 1;
+fi
