@@ -680,21 +680,23 @@ class Cgen(Interpreter):
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
-		else:
+		elif var1.type_.name == 'double':
 			l1 = IncLabels()
 			code += f"""
 					### lt
-					l.d $f0, 0($sp)
-					l.d $f1, 4($sp)
-					li $t0 , 1
-					c.lt.d $f1, $f0
-					bcl1t d_lt_{l1}
+					l.d $f2, 0($sp)
+					l.d $f4, 4($sp)
 					li $t0 , 0
+					c.lt.d $f4, $f2
+					bc1t d_lt_{l1}
+					li $t0 , 1
 				d_lt_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
-			pass
+					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+		
+		else:
+			raise SemanticError('types are not suitable for \'lt\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
@@ -709,7 +711,6 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'le\'', tree=tree)
-		#TODO check for null 
 		
 		if var1.type_.name == 'int':
 			# t0 operand 1
@@ -722,9 +723,23 @@ class Cgen(Interpreter):
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
+		elif var1.type_.name == 'double':
+			l1 = IncLabels()
+			code += f"""
+					### le
+					l.d $f2, 0($sp)
+					l.d $f4, 4($sp)
+					li $t0 , 0
+					c.le.d $f4, $f2
+					bc1t d_le_{l1}
+					li $t0 , 1
+				d_le_{l1}:
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+		
 		else:
-			# TODO for double
-			pass
+			raise SemanticError('types are not suitable for \'le\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
@@ -741,7 +756,6 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'gt\'', tree=tree)
-		#TODO check for null 
 		
 		if var1.type_.name == 'int':
 			# t0 operand 1
@@ -754,9 +768,23 @@ class Cgen(Interpreter):
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
+		elif var1.type_.name == 'double':
+			l1 = IncLabels()
+			code += f"""
+					### gt
+					l.d $f2, 0($sp)
+					l.d $f4, 4($sp)
+					li $t0 , 0
+					c.le.d $f2, $f4
+					bc1t d_gt_{l1}
+					li $t0 , 1
+				d_gt_{l1}:
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+		
 		else:
-			# TODO for double
-			pass
+			raise SemanticError('types are not suitable for \'le\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
