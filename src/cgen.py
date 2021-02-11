@@ -724,6 +724,8 @@ class Cgen(Interpreter):
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
 		elif var1.type_.name == 'double':
+			# f4 operand 1
+			# f2 operand 2
 			l1 = IncLabels()
 			code += f"""
 					### lt
@@ -767,6 +769,8 @@ class Cgen(Interpreter):
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t")
 		elif var1.type_.name == 'double':
+			# f4 operand 1
+			# f2 operand 2
 			l1 = IncLabels()
 			code += f"""
 					### le
@@ -774,7 +778,7 @@ class Cgen(Interpreter):
 					l.d $f4, 4($sp)
 					li $t0 , 0
 					c.le.d $f4, $f2
-					bc1t d_le_{l1}
+					bc1f d_le_{l1}
 					li $t0 , 1
 				d_le_{l1}:
 					sw $t0, 4($sp)
