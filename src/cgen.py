@@ -166,9 +166,9 @@ class Cgen(Interpreter):
 		elif lvalue_var.type_.name == 'double':
 			code += f"""
 				### store
-				l.d $f2, 0($sp)
+				l.s $f2, 0($sp)
 				addi $sp, $sp, 4
-				s.d $f2, {lvalue_var.address}($gp) 	
+				s.s $f2, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
 
 		elif lvalue_var.type_.name == 'string':
@@ -208,10 +208,10 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### add double
-				l.d $f2, 0($sp)
-				l.d $f4, 4($sp)
-				add.d $f6, $f4, $f2
-				s.d $f6, 4($sp) 
+				l.s $f2, 0($sp)
+				l.s $f4, 4($sp)
+				add.s $f6, $f4, $f2
+				s.s $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
 		
@@ -303,10 +303,10 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### sub double
-				l.d $f2, 0($sp)
-				l.d $f4, 4($sp)
-				sub.d $f6, $f4, $f2
-				s.d $f6, 4($sp) 
+				l.s $f2, 0($sp)
+				l.s $f4, 4($sp)
+				sub.s $f6, $f4, $f2
+				s.s $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
 
@@ -340,10 +340,10 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### mul double
-				l.d $f2, 0($sp)
-				l.d $f4, 4($sp)
-				mul.d $f6, $f4, $f2
-				s.d $f6, 4($sp) 
+				l.s $f2, 0($sp)
+				l.s $f4, 4($sp)
+				mul.s $f6, $f4, $f2
+				s.s $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
 		
@@ -378,10 +378,10 @@ class Cgen(Interpreter):
 		elif var1.type_.name == "double":
 			code += f"""
 				### div double
-				l.d $f2, 0($sp)
-				l.d $f4, 4($sp)
-				div.d $f6, $f4, $f2
-				s.d $f6, 4($sp) 
+				l.s $f2, 0($sp)
+				l.s $f4, 4($sp)
+				div.s $f6, $f4, $f2
+				s.s $f6, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
 		
@@ -438,9 +438,9 @@ class Cgen(Interpreter):
 		elif var.type_.name == "double":
 			code += f"""
 				### neg double
-				l.d $f2, 0($sp)
-				neg.d $f2, $f2
-				s.d $f2, 0($sp)
+				l.s $f2, 0($sp)
+				neg.s $f2, $f2
+				s.s $f2, 0($sp)
 				""".replace("\t\t\t\t", "\t")
 		else:
 			raise SemanticError('types are not suitable for \'neg\'', tree=tree)
@@ -462,9 +462,9 @@ class Cgen(Interpreter):
 		if variable.type_.name == "double":
 			code = f"""
 					### ident
-					l.d $f2, {variable.address}($gp)
+					l.s $f2, {variable.address}($gp)
 					addi $sp, $sp, -4
-					s.d $f2, 0($sp)
+					s.s $f2, 0($sp)
 					""".replace("\t\t\t\t\t", "\t")
 		else:
 			code = f"""
@@ -517,9 +517,9 @@ class Cgen(Interpreter):
 
 			code = f"""
 				### constant double
-				li.d $f2, {value}
+				li.s $f2, {value}
 				addi $sp, $sp, -4
-				s.d $f2, 0($sp)
+				s.s $f2, 0($sp)
 				""".replace("\t\t\t","")
 
 
@@ -608,8 +608,8 @@ class Cgen(Interpreter):
 			if var.type_.name == 'double':
 				code += f"""
 					### print double	
-					li $v0, 3		# syscall for print double 
-					l.d $f12, {sp_offset}($sp)
+					li $v0, 2		# syscall for print double 
+					l.s $f12, {sp_offset}($sp)
 					syscall
 					""".replace("\t\t\t\t\t","\t")
 
@@ -787,10 +787,10 @@ class Cgen(Interpreter):
 			l1 = IncLabels()
 			code += f"""
 					### lt
-					l.d $f2, 0($sp)
-					l.d $f4, 4($sp)
+					l.s $f2, 0($sp)
+					l.s $f4, 4($sp)
 					li $t0 , 0
-					c.lt.d $f4, $f2
+					c.lt.s $f4, $f2
 					bc1f d_lt_{l1}
 					li $t0 , 1
 				d_lt_{l1}:
@@ -832,10 +832,10 @@ class Cgen(Interpreter):
 			l1 = IncLabels()
 			code += f"""
 					### le
-					l.d $f2, 0($sp)
-					l.d $f4, 4($sp)
+					l.s $f2, 0($sp)
+					l.s $f4, 4($sp)
 					li $t0 , 0
-					c.le.d $f4, $f2
+					c.le.s $f4, $f2
 					bc1f d_le_{l1}
 					li $t0 , 1
 				d_le_{l1}:
@@ -877,10 +877,10 @@ class Cgen(Interpreter):
 			l1 = IncLabels()
 			code += f"""
 					### gt
-					l.d $f2, 0($sp)
-					l.d $f4, 4($sp)
+					l.s $f2, 0($sp)
+					l.s $f4, 4($sp)
 					li $t0 , 0
-					c.lt.d $f2, $f4
+					c.lt.s $f2, $f4
 					bc1f d_gt_{l1}
 					li $t0 , 1
 				d_gt_{l1}:
@@ -920,10 +920,10 @@ class Cgen(Interpreter):
 			l1 = IncLabels()
 			code += f"""
 					### ge
-					l.d $f2, 0($sp)
-					l.d $f4, 4($sp)
+					l.s $f2, 0($sp)
+					l.s $f4, 4($sp)
 					li $t0 , 0
-					c.le.d $f2, $f4
+					c.le.s $f2, $f4
 					bc1f d_ge_{l1}
 					li $t0 , 1
 				d_ge_{l1}:
@@ -1105,8 +1105,8 @@ class Cgen(Interpreter):
 		code += f"""
 					la $t0, 0($sp)
 					mtc1 $t0, $f0
-					cvt.d.w $f0, $f0
-					s.d $f0, 0($sp)
+					cvt.s.w $f0, $f0
+					s.s $f0, 0($sp)
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('double')))
 		return code
@@ -1122,7 +1122,7 @@ class Cgen(Interpreter):
 		code+= f"""
 				la $t0, 0($sp)
 				mov $f0, $t0
-				cvt.w.d $f0, $f0
+				cvt.w.s $f0, $f0
 				mfc1 $t0, $f0
 				sw $a0, 0($sp)
 				""".replace("\t\t\t", "")

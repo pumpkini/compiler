@@ -109,6 +109,7 @@ print_stmt: PRINT "(" actuals ")" ";"
     | DTOI "(" expr ")" -> dtoi
     | ITOB "(" expr ")" -> itob
     | BTOI "(" expr ")" -> btoi
+    | THIS
 
 
 l_value : IDENT -> ident 
