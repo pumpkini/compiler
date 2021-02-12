@@ -46,13 +46,13 @@ class Variable():
 	
 
 class Function():
-	def __init__(self, name, arguments=[], return_type:Type = None):
+	def __init__(self, name, formals=[], return_type:Type = None):
 			self.name = name
 			self.return_type = return_type
-			self.arguments = arguments	# array: variable (order is important)
+			self.formals = formals	# array: variable (order is important)
 
 	def __str__(self) -> str:
-		return f"<F-{self.name}-{self.return_type}-{[a.__str__() for a in self.arguments]}>"
+		return f"<F-{self.name}-{self.return_type}-{[a.__str__() for a in self.formals]}>"
 	
 
 class SymbolTable():
@@ -213,7 +213,7 @@ class SymbolTableVisitor(Interpreter):
 		tree.symbol_table.add_func(Function(
 				name = func_name,
 				return_type = type_,
-				arguments = formals
+				formals = formals
 		),tree)
 
 	

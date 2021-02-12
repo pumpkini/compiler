@@ -147,7 +147,7 @@ class Cgen(Interpreter):
 		formals_code = ""
 		
 		index = 4
-		for arg in function.arguments[::-1]:
+		for arg in function.formals[::-1]:
 			formals_code += f"""
 			lw $t0, {index}($fp)
 			sw $t0, {arg.address}($gp)
@@ -157,10 +157,14 @@ class Cgen(Interpreter):
 		# body
 		statement_block = self.visit(tree.children[3])		
 
+		func_label = func_name
+		if func_name != 'main':
+			func_label = 'func_' + func_label
+
 		code = f"""
 		### Function
 
-		{func_name}:
+		{func_label}:
 			# func store registers
 
 			sw $fp, -4($sp)
@@ -209,30 +213,37 @@ class Cgen(Interpreter):
 		# TODO add member function calls
 
 		function_name = tree.children[0].value
-
 		function = tree.symbol_table.find_func(function_name)
 
 		if not function:
 			raise SemanticError(f"function {function_name} does not exist in this scope", tree=tree)
 
-		
-		# TODO check arg types
 
 		stack_size_initial = len(stack)
-
 		actuals_code = self.visit(tree.children[1])
+		arguments_number = len(stack) - stack_size_initial
+		
+		if arguments_number != len(function.formals):
+			raise SemanticError(f"function {function_name} arguments number are not matched", tree=tree)
+		
+
+		i = arguments_number - 1
+		while len(stack) > stack_size_initial:
+			formal = function.formals[i]
+			arg = stack.pop()
+			print("f a", formal, arg)
+			if arg.type_.name != formal.type_.name:
+				raise SemanticError(f"function {function_name} arguments not matched with formals", tree=tree)
+			i -= 1
 
 
+		func_label = "func_" + function_name
+		
 		code = f"""
 			{actuals_code}
-			jal	{function_name}
-		""".replace("\t\t\t", "\t")
-
-		while len(stack) > stack_size_initial:
-			stack.pop()
-
-		code += f"""
-			addi $sp, $sp, {len(function.arguments) * 4}
+			jal	{func_label}
+		
+			addi $sp, $sp, {arguments_number * 4}
 		""".replace("\t\t\t", "\t")
 
 		return code
