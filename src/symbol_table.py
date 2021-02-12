@@ -192,12 +192,13 @@ class SymbolTableVisitor(Interpreter):
 
 		# access arguments with $fp + 4, $fp + 8, ...
 
-		# TODO void
-
 		# type 
-		tree.children[0].symbol_table = tree.symbol_table
-		self.visit(tree.children[0])
-		type_ = stack.pop()
+		type_ = Type("void") # void
+
+		if isinstance(tree.children[0], Tree):
+			tree.children[0].symbol_table = tree.symbol_table
+			self.visit(tree.children[0])
+			type_ = stack.pop()
 
 		func_name = tree.children[1].value
 

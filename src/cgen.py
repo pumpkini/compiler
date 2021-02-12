@@ -132,9 +132,10 @@ class Cgen(Interpreter):
 		
 
 		# type
-		type_ = self.visit(tree.children[0])
-
-		# TODO check return type
+		
+		type_ = Type("void")
+		if isinstance(tree.children[0], Tree):
+			type_ = self.visit(tree.children[0])
 
 		# name
 		func_name = tree.children[1].value
@@ -228,7 +229,6 @@ class Cgen(Interpreter):
 		while len(stack) > stack_size_initial:
 			formal = function.formals[i]
 			arg = stack.pop()
-			print("f a", formal, arg)
 			if arg.type_.name != formal.type_.name:
 				raise SemanticError(f"function {function_name} arguments not matched with formals", tree=tree)
 			i -= 1
@@ -248,8 +248,9 @@ class Cgen(Interpreter):
 			sw $v0, -4($sp)
 			addi $sp, $sp, -4
 			"""	
-			stack.append(Variable(type_=function.return_type))
-
+		
+		stack.append(Variable(type_=function.return_type))
+		
 		return code
 
 
@@ -258,23 +259,24 @@ class Cgen(Interpreter):
 			raise SemanticError("return can only be used in function", tree=tree)
 
 		function = stack_of_functions[-1]
-		print(function)
 
 		code = '\t# return\n'
-		variable = None
+		variable = Variable(type_=Type("void"))
+
 		if len(tree.children) > 1:
 			code += self.visit(tree.children[1])
 			variable = stack.pop()
 
+			# store return value in v0
 			code += f"""
 			lw $v0, 0($sp)
 			addi $sp, $sp, 4
 
 			""".replace("\t\t\t", "\t")
-			
-		# TODO void
+		
 		# TODO maybe array need extra care 
-	
+		
+		print(variable.type_, "@$@#$@#$", function.return_type)
 		if variable.type_.name != function.return_type.name:
 			raise SemanticError("return type does not match function declaration", tree=tree)			
 
@@ -306,10 +308,9 @@ class Cgen(Interpreter):
 
 		code += self.visit(tree.children[1])
 		expr_var = stack.pop()
-
 		
 		if lvalue_var.type_.name != expr_var.type_.name:
-			raise SemanticError('lvalue type != expr type in \'expr_assign\'', tree=tree)
+			raise SemanticError(f"lvalue type '{lvalue_var.type_.name}' != expr type '{expr_var.type_.name}' in 'expr_assign'", tree=tree)
 		
 		if lvalue_var.type_.name == 'int' or\
 			 lvalue_var.type_.name == 'bool':
@@ -433,7 +434,6 @@ class Cgen(Interpreter):
 			add_str_end_{label_number}:
 
 				""".replace("\t\t\t","")
-			pass
 
 		elif  var1.type_.name == "array":
 			# TODO
@@ -614,7 +614,6 @@ class Cgen(Interpreter):
 		return code
 
 
-	# TODO  other l_value expr_ident expr_expr
 	def ident(self, tree):
 		var_name = tree.children[0].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
@@ -627,20 +626,21 @@ class Cgen(Interpreter):
 					l.s $f2, {variable.address}($gp)
 					addi $sp, $sp, -4
 					s.s $f2, 0($sp)
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		else:
 			code = f"""
 					### ident
 					lw $t0, {variable.address}($gp)
 					addi $sp, $sp, -4
 					sw $t0, 0($sp)
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		
 		return code
 
 
 
 	# TODO do we need null?
+
 	def constant(self, tree):
 		constant_type = tree.children[0].type
 		value = "????"
@@ -735,6 +735,10 @@ class Cgen(Interpreter):
 			constant_str_end_{label_number}:
 
 				""".replace("\t\t\t","")
+		
+		if constant_type == 'NULL':
+			# TODO ??
+			type_ = Type('null')
 
 		stack.append(Variable(type_=type_))
 		return code
@@ -760,7 +764,7 @@ class Cgen(Interpreter):
 					li $v0, 1		# syscall for print integer 
 					lw $a0, {sp_offset}($sp)
 					syscall
-					""".replace("\t\t\t\t\t","\t")	
+					""".replace("\t\t\t\t","")	
 			
 			if var.type_.name  == 'bool':
 				code += f"""
@@ -777,7 +781,7 @@ class Cgen(Interpreter):
 					li $v0, 2		# syscall for print double 
 					l.s $f12, {sp_offset}($sp)
 					syscall
-					""".replace("\t\t\t\t\t","\t")
+					""".replace("\t\t\t\t","")
 
 			if var.type_.name == 'string':
 				code += f"""
@@ -785,7 +789,7 @@ class Cgen(Interpreter):
 					li $v0, 4		# syscall for print string 
 					lw $a0, {sp_offset}($sp)
 					syscall
-					""".replace("\t\t\t\t\t","\t")
+					""".replace("\t\t\t\t","")
 
 			sp_offset -= 4
 
@@ -891,7 +895,7 @@ class Cgen(Interpreter):
 					seq $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -907,36 +911,45 @@ class Cgen(Interpreter):
 				d_eq_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 
 		elif var1.type_.name == 'string':
 			# s0 str1 address
 			# s1 str2 address
-			code = f"""
-				### eq string
-				la $s1, 0($sp)
-				la $s0, 4($sp)
+			labelcnt = IncLabels()
+			code += f"""
+					### equal string
+					lw $s1, 0($sp)
+					lw $s0, 4($sp)
+					
+				cmploop_{labelcnt}:
+					lb $t2,0($s0)
+					lb $t3,0($s1)
+					bne $t2,$t3,cmpne_{labelcnt}
+					
+					beq $t2,$zero,cmpeq_{labelcnt}
+					beq $t3,$zero,cmpeq_{labelcnt}
+					
+					addi $s0,$s0,1
+					addi $s1,$s1,1
+					
+					j cmploop_{labelcnt}
+					
+				cmpne_{labelcnt}:
+					li $t0,0
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				cmpeq_{labelcnt}:
+					li $t0,1
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				end_{labelcnt}:
 
-			cmploop:
-    			lb $t2,0($s0)
-    			lb $t3,0($s1)
-   				bne     $t2,$t3,cmpne
-
-    			beq     $t2,$zero,cmpeq
-
-   	 			addi    $s0,$s0,1
-    			addi    $s1,$s1,1
-
-			cmpne:
-    			li     $t0,0
-				sw $t0, 4($sp)
-				addi $sp, $sp, 4
-
-			cmpeq:
-  				li     $t0,1
-				sw $t0, 4($sp)
-				addi $sp, $sp, 4
-				""".replace("\t\t\t","")
+				""".replace("\t\t\t\t","")
 				
 		else:
 			raise SemanticError('types are not suitable for \'eq\'', tree=tree)
@@ -955,8 +968,8 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'nequal\'', tree=tree)
-		#TODO check for null 
 		
+		#TODO check for null and other objects
 		if var1.type_.name == 'int' or var1.type_.name == 'bool':
 			# t0 operand 1
 			# t1 operand 2
@@ -967,7 +980,7 @@ class Cgen(Interpreter):
 					sne $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -983,8 +996,44 @@ class Cgen(Interpreter):
 				d_neq_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
-		# TODO for objects
+					""".replace("\t\t\t\t", "")
+		elif var1.type_.name == 'string':
+			# s0 str1 address
+			# s1 str2 address
+			labelcnt = IncLabels()
+			code += f"""
+					### not_equal string
+					lw $s1, 0($sp)
+					lw $s0, 4($sp)
+					
+				cmploop_{labelcnt}:
+					lb $t2,0($s0)
+					lb $t3,0($s1)
+					bne $t2,$t3,cmpne_{labelcnt}
+					
+					beq $t2,$zero,cmpeq_{labelcnt}
+					beq $t3,$zero,cmpeq_{labelcnt}
+					
+					addi $s0,$s0,1
+					addi $s1,$s1,1
+					
+					j cmploop_{labelcnt}
+					
+				cmpne_{labelcnt}:
+					li $t0,1
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				cmpeq_{labelcnt}:
+					li $t0,0
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				end_{labelcnt}:
+
+				""".replace("\t\t\t\t","")
 		else:
 			raise SemanticError('types are not suitable for \'neq\'', tree=tree)
 
@@ -1012,7 +1061,7 @@ class Cgen(Interpreter):
 					slt $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1028,7 +1077,7 @@ class Cgen(Interpreter):
 				d_lt_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'lt\'', tree=tree)
@@ -1057,7 +1106,7 @@ class Cgen(Interpreter):
 					sle $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1073,7 +1122,7 @@ class Cgen(Interpreter):
 				d_le_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'le\'', tree=tree)
@@ -1104,7 +1153,7 @@ class Cgen(Interpreter):
 					sgt $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			l1 = IncLabels()
 			code += f"""
@@ -1118,7 +1167,7 @@ class Cgen(Interpreter):
 				d_gt_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'gt\'', tree=tree)
@@ -1147,7 +1196,7 @@ class Cgen(Interpreter):
 					sge $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			l1 = IncLabels()
 			code += f"""
@@ -1161,7 +1210,7 @@ class Cgen(Interpreter):
 				d_ge_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'ge\'', tree=tree)
@@ -1197,28 +1246,28 @@ class Cgen(Interpreter):
 				### read Line
 				li $v0, 9	# syscall for allocating bytes
 				li $a0, 1000
-				syscall		
-				sub $sp, $sp, 8
+				syscall
+				sub $sp, $sp, 4
 				sw $v0, 0($sp)
 				move $a0, $v0
 				li $a1, 1000
 				li $v0, 8	# syscall for read string
 				syscall
 				lw $a0, 0($sp)
-				line_{l1}:
-					lb $t0, 0($a0)
-					beq $t0, 0, end_line_{l1}
-					bne $t0, 10, remover_{l2}
-					li $t2, 0
-					sb $t2, 0($a0)
-				remover_{l2}:
-					bne $t0, 13, remover_{l3}
-					li $t2, 0
-					sb $t2, 0($a0)
-				remover_{l3}:
-					addi $a0, $a0, 1
-					j line_{l1}
-				end_line_{l1}:
+			line_{l1}:
+				lb $t0, 0($a0)
+				beq $t0, 0, end_line_{l1}
+				bne $t0, 10, remover_{l2}
+				li $t2, 0
+				sb $t2, 0($a0)
+			remover_{l2}:
+				bne $t0, 13, remover_{l3}
+				li $t2, 0
+				sb $t2, 0($a0)
+			remover_{l3}:
+				addi $a0, $a0, 1
+				j line_{l1}
+			end_line_{l1}:
 					
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('string', tree=tree)))
@@ -1499,16 +1548,31 @@ class Cgen(Interpreter):
 
 
 	def new_array(self, tree):
-		size = int(tree.children[0].value)
-		mem_type = tree.children[1].value
+		code = self.visit(tree.children[0])
+		size = int(stack.pop())
 
-		type_ = tree.symbol_table.find_type(Type("array",4,mem_type))
+		mem_type_name = tree.children[1].value
+
+		mem_type = tree.symbol_table.find_type(Type(mem_type_name))
+
+		type_ = Type("array",arr_type = mem_type)
 
 		if size < 0 or type(size) != "int":
 			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
 
-		code = f"""
+		code += f"""
 				### array
+
+				lw $t0, 0($sp)
+
+				la $a0 , $t0
+				li $v0 , 51
+				syscall
+
+				bneq $a1,  0, array_size_err_
+
+				ble $t0, 0 , array_size_err_
+
 				li $v0, 9		# syscall for allocate byte
 				li $a0, {(size + 1) * 4}
 				syscall
@@ -1520,8 +1584,14 @@ class Cgen(Interpreter):
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
 
+			array_size_err_: 
+				la $a0 , errorMsg
+				li $v0 , 4
+				syscall
+				
 				""".replace("\t\t\t","")
 		# TODO
+		
 		stack.append(Variable(type_=type_))
 		return code
 
