@@ -966,8 +966,8 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'nequal\'', tree=tree)
-		#TODO check for null 
 		
+		#TODO check for null and other objects
 		if var1.type_.name == 'int' or var1.type_.name == 'bool':
 			# t0 operand 1
 			# t1 operand 2
@@ -995,7 +995,43 @@ class Cgen(Interpreter):
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
-		# TODO for objects
+		elif var1.type_.name == 'string':
+			# s0 str1 address
+			# s1 str2 address
+			labelcnt = IncLabels()
+			code += f"""
+					### not_equal string
+					lw $s1, 0($sp)
+					lw $s0, 4($sp)
+					
+				cmploop_{labelcnt}:
+					lb $t2,0($s0)
+					lb $t3,0($s1)
+					bne $t2,$t3,cmpne_{labelcnt}
+					
+					beq $t2,$zero,cmpeq_{labelcnt}
+					beq $t3,$zero,cmpeq_{labelcnt}
+					
+					addi $s0,$s0,1
+					addi $s1,$s1,1
+					
+					j cmploop_{labelcnt}
+					
+				cmpne_{labelcnt}:
+					li $t0,1
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				cmpeq_{labelcnt}:
+					li $t0,0
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				end_{labelcnt}:
+
+				""".replace("\t\t\t\t","")
 		else:
 			raise SemanticError('types are not suitable for \'neq\'', tree=tree)
 
