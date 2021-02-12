@@ -621,7 +621,6 @@ class Cgen(Interpreter):
 		
 		stack.append(variable)
 
-		code = ''
 		if variable.type_.name == "double": # TODO do we need this aslan?
 			code = f"""
 					### ident
@@ -638,7 +637,8 @@ class Cgen(Interpreter):
 					""".replace("\t\t\t\t\t", "\t")
 		
 		return code
-		
+
+
 
 	# TODO do we need null?
 	def constant(self, tree):
@@ -1302,6 +1302,25 @@ class Cgen(Interpreter):
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
+
+	def expr_expr(self, tree):
+		code = self.visit(tree.children[1])
+		index = stack.pop()
+		lvalue = self.visit(tree.children[0])
+
+		if index.type_.name != 'int':
+			raise SemanticError('index type is not int', tree = tree)
+
+		l1 = IncLabels()
+		code += f"""
+				li $t0, {lvalue.contain}
+				li $t1, 0($sp)
+				addi $t1, $t1, -1
+			s_iter_array_{l1}:
+				beq $t1, $zero, f_iter_array{l1}
+				
+			f_iter_array_{l1}:	
+				""".replace("\t\t\t", "")
 
 
 	def if_stmt(self, tree):
