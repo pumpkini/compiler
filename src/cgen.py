@@ -915,39 +915,39 @@ class Cgen(Interpreter):
 			# s0 str1 address
 			# s1 str2 address
 			labelcnt = IncLabels()
-			code = f"""
-				### eq string
-				lw $s1, 0($sp)
-				lw $s0, 4($sp)
+			code += f"""
+					### equal string
+					lw $s1, 0($sp)
+					lw $s0, 4($sp)
+					
+				cmploop_{labelcnt}:
+					lb $t2,0($s0)
+					lb $t3,0($s1)
+					bne $t2,$t3,cmpne_{labelcnt}
+					
+					beq $t2,$zero,cmpeq_{labelcnt}
+					beq $t3,$zero,cmpeq_{labelcnt}
+					
+					addi $s0,$s0,1
+					addi $s1,$s1,1
+					
+					j cmploop_{labelcnt}
+					
+				cmpne_{labelcnt}:
+					li $t0,0
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				cmpeq_{labelcnt}:
+					li $t0,1
+					sw $t0, 4($sp)
+					addi $sp, $sp, 4
+					j end_{labelcnt}
+					
+				end_{labelcnt}:
 
-			cmploop_{labelcnt}:
-    			lb $t2,0($s0)
-    			lb $t3,0($s1)
-   				bne     $t2,$t3,cmpne_{labelcnt}
-
-    			beq     $t2,$zero,cmpeq_{labelcnt}
-				beq     $t3,$zero,cmpeq_{labelcnt}
-
-   	 			addi    $s0,$s0,1
-    			addi    $s1,$s1,1
-
-				j       cmploop_{labelcnt}
-
-			cmpne_{labelcnt}:
-    			li     $t0,0
-				sw $t0, 4($sp)
-				addi $sp, $sp, 4
-				j end_{labelcnt}
-
-			cmpeq_{labelcnt}:
-  				li     $t0,1
-				sw $t0, 4($sp)
-				addi $sp, $sp, 4
-				j end_{labelcnt}
-
-			end_{labelcnt}:
-
-				""".replace("\t\t\t","")
+				""".replace("\t\t\t\t","")
 				
 		else:
 			raise SemanticError('types are not suitable for \'eq\'', tree=tree)
@@ -1209,29 +1209,29 @@ class Cgen(Interpreter):
 				li $v0, 9	# syscall for allocating bytes
 				li $a0, 1000
 				syscall		
-				sub $sp, $sp, 8
+				sub $sp, $sp, 4
 				sw $v0, 0($sp)
 				move $a0, $v0
 				li $a1, 1000
 				li $v0, 8	# syscall for read string
 				syscall
 				lw $a0, 0($sp)
-				line_{l1}:
-					lb $t0, 0($a0)
-					beq $t0, 0, end_line_{l1}
-					bne $t0, 10, remover_{l2}
-					li $t2, 0
-					sb $t2, 0($a0)
-				remover_{l2}:
-					bne $t0, 13, remover_{l3}
-					li $t2, 0
-					sb $t2, 0($a0)
-				remover_{l3}:
-					addi $a0, $a0, 1
-					j line_{l1}
-				end_line_{l1}:
+		line_{l1}:
+				lb $t0, 0($a0)
+				beq $t0, 0, end_line_{l1}
+				bne $t0, 10, remover_{l2}
+				li $t2, 0
+				sb $t2, 0($a0)
+		remover_{l2}:
+				bne $t0, 13, remover_{l3}
+				li $t2, 0
+				sb $t2, 0($a0)
+			remover_{l3}:
+				addi $a0, $a0, 1
+				j line_{l1}
+		end_line_{l1}:
 					
-				""".replace("\t\t\t", "")
+				""".replace("\t\t\t\t", "\t")
 		stack.append(Variable(type_=tree.symbol_table.find_type('string', tree=tree)))
 		return code
 
