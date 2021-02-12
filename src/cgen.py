@@ -1074,10 +1074,15 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != 'double':
 			raise SemanticError('variable type is not double in \'dtoi\'', tree=tree)
-
+		l1 = IncLabels()
 		code+= f"""
-				li $f4, 0.5
+				li.s $f4, -0.5
+				li.s $f6, 0.0
 				l.s $f0, 0($sp)
+				c.lt.s $f0, $f6
+				bc1t dtoi_{l1}
+				li.s $f4, 0.5
+			dtoi_{l1}:
 				add.s $f0, $f0, $f4
 				cvt.w.s $f2, $f0
 				s.s $f2, 0($sp)
