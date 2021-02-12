@@ -114,8 +114,10 @@ class Cgen(Interpreter):
 		# 			| 		...		  |				=> caller
 		# 			| 	argument n    |			/
 		#			------------------- 
-		#  $fp -> 	| saved registers |			\
-		#  $fp - 4	| 		...		  |			 \
+		#  $fp -> 	| 	  old fp	  |			\
+		#  $fp - 4 	| 	  old ra	  |			\
+		#  		 	| saved registers |			\
+		#  			| 		...		  |			 \
 		#			-------------------				=> callee
 		# 			| 	local vars	  |			 /
 		# 			| 		...		  |			/
@@ -160,19 +162,21 @@ class Cgen(Interpreter):
 
 		{func_name}:
 			# func store registers
-			sw $s0, -4($sp)
-			sw $s1, -8($sp)
-			sw $s2, -12($sp)
-			sw $s3, -16($sp)
-			sw $s4, -20($sp)
-			sw $s5, -24($sp)
-			sw $s6, -28($sp)
-			sw $s7, -32($sp)
-			sw $fp, -36($sp)
-			sw $ra, -40($sp)
 
-			add $fp, $sp, -4	# new frame pointer
-			addi $sp, $sp, -40
+			sw $fp, -4($sp)
+			addi $fp, $sp, -4	# new frame pointer
+
+			sw $ra, -4($fp)
+			sw $s0, -8($fp)
+			sw $s1, -12($fp)
+			sw $s2, -16($fp)
+			sw $s3, -20($fp)
+			sw $s4, -24($fp)
+			sw $s5, -28($fp)
+			sw $s6, -32($fp)
+			sw $s7, -36($fp)
+
+			addi $sp, $sp, -36	# update stack pointer
 
 			# func formals
 			{formals_code}
@@ -181,17 +185,20 @@ class Cgen(Interpreter):
 			{statement_block}
 			
 			# func load registers
-			addi $sp, $sp, 40
-			lw $s0, -4($sp)
-			lw $s1, -8($sp)
-			lw $s2, -12($sp)
-			lw $s3, -16($sp)
-			lw $s4, -20($sp)
-			lw $s5, -24($sp)
-			lw $s6, -28($sp)
-			lw $s7, -32($sp)
-			lw $fp, -36($sp)
-			lw $ra, -40($sp)
+			
+			lw $ra, -4($fp)
+			lw $s0, -8($fp)
+			lw $s1, -12($fp)
+			lw $s2, -16($fp)
+			lw $s3, -20($fp)
+			lw $s4, -24($fp)
+			lw $s5, -28($fp)
+			lw $s6, -32($fp)
+			lw $s7, -36($fp)
+
+			addi $sp, $fp, 4  # update stack pointer to old value
+
+			lw $fp, 0($fp)	 # old frame pointer
 
 			jr $ra
 		""".replace("\t\t", "")
@@ -287,8 +294,8 @@ class Cgen(Interpreter):
 		# assume assignment expression push a true in stack
 		code += f"""
 			li $t0, 1
-			sw $t0, 4($sp) 
-			addi $sp, $sp, 4
+			sw $t0, -4($sp) 
+			addi $sp, $sp, -4
 		"""
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 
