@@ -627,14 +627,14 @@ class Cgen(Interpreter):
 					l.s $f2, {variable.address}($gp)
 					addi $sp, $sp, -4
 					s.s $f2, 0($sp)
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		else:
 			code = f"""
 					### ident
 					lw $t0, {variable.address}($gp)
 					addi $sp, $sp, -4
 					sw $t0, 0($sp)
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		
 		return code
 		
@@ -761,7 +761,7 @@ class Cgen(Interpreter):
 					li $v0, 1		# syscall for print integer 
 					lw $a0, {sp_offset}($sp)
 					syscall
-					""".replace("\t\t\t\t\t","\t")	
+					""".replace("\t\t\t\t","")	
 			
 			if var.type_.name  == 'bool':
 				code += f"""
@@ -778,7 +778,7 @@ class Cgen(Interpreter):
 					li $v0, 2		# syscall for print double 
 					l.s $f12, {sp_offset}($sp)
 					syscall
-					""".replace("\t\t\t\t\t","\t")
+					""".replace("\t\t\t\t","")
 
 			if var.type_.name == 'string':
 				code += f"""
@@ -786,7 +786,7 @@ class Cgen(Interpreter):
 					li $v0, 4		# syscall for print string 
 					lw $a0, {sp_offset}($sp)
 					syscall
-					""".replace("\t\t\t\t\t","\t")
+					""".replace("\t\t\t\t","")
 
 			sp_offset -= 4
 
@@ -892,7 +892,7 @@ class Cgen(Interpreter):
 					seq $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -908,7 +908,7 @@ class Cgen(Interpreter):
 				d_eq_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 
 		elif var1.type_.name == 'string':
 			# s0 str1 address
@@ -977,7 +977,7 @@ class Cgen(Interpreter):
 					sne $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -993,7 +993,7 @@ class Cgen(Interpreter):
 				d_neq_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'string':
 			# s0 str1 address
 			# s1 str2 address
@@ -1058,7 +1058,7 @@ class Cgen(Interpreter):
 					slt $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1074,7 +1074,7 @@ class Cgen(Interpreter):
 				d_lt_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'lt\'', tree=tree)
@@ -1103,7 +1103,7 @@ class Cgen(Interpreter):
 					sle $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1119,7 +1119,7 @@ class Cgen(Interpreter):
 				d_le_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'le\'', tree=tree)
@@ -1150,7 +1150,7 @@ class Cgen(Interpreter):
 					sgt $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			l1 = IncLabels()
 			code += f"""
@@ -1164,7 +1164,7 @@ class Cgen(Interpreter):
 				d_gt_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'gt\'', tree=tree)
@@ -1193,7 +1193,7 @@ class Cgen(Interpreter):
 					sge $t2, $t0, $t1
 					sw $t2, 4($sp) 
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t")
+					""".replace("\t\t\t\t", "")
 		elif var1.type_.name == 'double':
 			l1 = IncLabels()
 			code += f"""
@@ -1207,7 +1207,7 @@ class Cgen(Interpreter):
 				d_ge_{l1}:
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
-					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
+					""".replace("\t\t\t\t", "")
 		
 		else:
 			raise SemanticError('types are not suitable for \'ge\'', tree=tree)
