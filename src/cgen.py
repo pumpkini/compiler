@@ -9,10 +9,11 @@ from utils import SemanticError
 
 
 stack = []
-
 constant_strings = []
-
 arrays = []
+
+# for using in break and continue
+current_for_or_while_labels = [] # (label_for_continue, label_for_break) 
 
 
 def IncLabels():
@@ -1157,10 +1158,14 @@ class Cgen(Interpreter):
 		expr_code = self.visit(tree.children[1])
 		expr_variable = stack.pop()
 
-		statement_code = self.visit(tree.children[2])
-
 		label_num = IncLabels()
 
+		current_for_or_while_labels.append((f"start_while_{label_num}", f"end_while_{label_num}"))
+
+		statement_code = self.visit(tree.children[2])
+
+		current_for_or_while_labels.pop();
+		
 		code = f"""
 		### while stmt no. {label_num}
 		start_while_{label_num}:
@@ -1224,8 +1229,11 @@ class Cgen(Interpreter):
 		code_expr3 = ''
 		code_body = ''
 		
+		label_num = IncLabels()
+
+		current_for_or_while_labels.append((f"continue_for_{label_num}", f"end_for_{label_num}"))
+
 		# expr
-		
 		if expr1_num:
 			code_expr1 = self.visit(tree.children[expr1_num])
 			expr1_var = stack.pop()
@@ -1240,7 +1248,7 @@ class Cgen(Interpreter):
 		# body
 		code_body = self.visit(tree.children[body_num])
 
-		label_num = IncLabels()
+		current_for_or_while_labels.pop()
 
 		code = f"""
 		### for stmt no. {label_num}
@@ -1252,6 +1260,8 @@ class Cgen(Interpreter):
 			beq $t0, $zero, end_for_{label_num}
 
 			{code_body}
+		
+		continue_for_{label_num}:
 			{code_expr3}
 
 			b start_for_{label_num}
@@ -1259,6 +1269,33 @@ class Cgen(Interpreter):
 		end_for_{label_num}:
 		""".replace("\t\t", "")
 
+		return code
+
+	
+	def break_stmt(self, tree):
+		if len(current_for_or_while_labels) == 0:
+			raise SemanticError("break can only be used in for/while", tree=tree)
+
+		labels = current_for_or_while_labels[-1]
+
+		code = f"""
+		# break
+		j {labels[1]}
+		""".replace("\t\t", "")
+
+		return code
+
+	def continue_stmt(self, tree):
+		if len(current_for_or_while_labels) == 0:
+			raise SemanticError("continue can only be used in for/while", tree=tree)
+
+		labels = current_for_or_while_labels[-1]
+
+		code = f"""
+		# continue
+		j {labels[0]}
+		""".replace("\t\t", "")
+		
 		return code
 
 
