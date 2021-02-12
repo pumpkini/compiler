@@ -50,6 +50,10 @@ class Function():
 			self.name = name
 			self.return_type = return_type
 			self.formals = formals	# array: variable (order is important)
+			if name != "main":
+				self.label = "func_" + name
+			else:
+				self.label = name
 
 	def __str__(self) -> str:
 		return f"<F-{self.name}-{self.return_type}-{[a.__str__() for a in self.formals]}>"
@@ -66,29 +70,36 @@ class SymbolTable():
 		SymbolTable.symbol_tables.append(self)
 
 
-	def find_var(self, name):
+	def find_var(self, name, tree=None, error=True):
 		if name in self.variables:
 			return self.variables[name]
 		if self.parent:
-			return self.parent.find_var(name)
+			return self.parent.find_var(name, tree, error)
 
-		return None # Varriable not found
+		if error:
+			raise SemanticError(f'Variable {name} not found in this scope', tree=tree)
+		return None
 
-	def find_func(self, name):
+	def find_func(self, name, tree=None, error=True):
 		if name in self.functions:
 			return self.functions[name]
 		if self.parent:
-			return self.parent.find_func(name)
+			return self.parent.find_func(name, tree, error)
 
-		return None # Varriable not found
+		if error:
+			raise SemanticError(f'Function {name} not found in this scope', tree=tree)
+		return None
 
-	def find_type(self, name):
+	def find_type(self, name, tree=None, error=True):
 		if name in self.types:
 			return self.types[name]
 		if self.parent:
-			return self.parent.find_type(name)
+			return self.parent.find_type(name, tree, error)
 
-		return None # Varriable not found		
+		if error:
+			raise SemanticError(f'Type {name} not found in this scope', tree=tree)
+		return None
+
 
 	def get_index(self):
 		return SymbolTable.symbol_tables.index(self)
@@ -97,19 +108,19 @@ class SymbolTable():
 		return f"SYMBOLYABLE: {self.get_index()} PARENT: {self.parent.get_index() if self.parent else -1}\n\tVARIABLES: {[v.__str__() for v in self.variables.values()]}\n\tFUNCTIONS: {[f.__str__() for f in self.functions]}"
 
 	def add_var(self, var:Variable, tree=None):
-		if self.find_var(var.name):
+		if self.find_var(var.name, error=False):
 			raise SemanticError('Variable already exist in scope', tree=tree)
 		
 		self.variables[var.name] = var
 
 	def add_func(self, func:Function, tree=None):
-		if self.find_var(func.name):
+		if self.find_func(func.name, error=False):
 			raise SemanticError('Function already exist in scope', tree=tree)
 
 		self.functions[func.name] = func
 
 	def add_type(self, type_:Type, tree=None):
-		if self.find_var(type_.name):
+		if self.find_type(type_.name, error=False):
 			raise SemanticError('Type already  exist in scope', tree=tree)
 
 		self.types[type_.name] = type_

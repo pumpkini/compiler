@@ -4,6 +4,9 @@ class SemanticError(Exception):
 	def __init__(self, message="", line=None, col=None, tree:Tree=None):
 		self.message = message
 		
+		self.line = 0
+		self.col = 0
+
 		if tree:
 			self.line = tree.meta.line 
 			self.col =tree.meta.column
