@@ -12,6 +12,9 @@ stack = []
 
 constant_strings = []
 
+arrays = []
+
+
 def IncLabels():
 	Cgen.labels+=1
 	return Cgen.labels
@@ -1259,6 +1262,46 @@ class Cgen(Interpreter):
 		""".replace("\t\t", "")
 
 		return code
+
+	def new_array(self, tree):
+		size = int(tree.children[0].value)
+		type_ = tree.symbol_table.find_type('array')
+
+		array_label = len(arrays)
+		
+		#constant_strings.append(value)
+		label_number = IncLabels()
+
+		code = f"""
+				### array
+				li $v0, 9		# syscall for allocate byte
+				li $a0, {size + 1}
+				syscall
+
+				move $s0, $v0		# s0: address of array
+
+				addi $sp, $sp, -4
+				sw $s0, 0($sp)
+
+				la $s1, ARRAY_{array_label}
+				li $t1, 0
+
+			array_{label_number}:
+				lb $t1, 0($s1)
+				sb $t1, 0($s0)
+				beq $t1, $zero, array_end{label_number} 
+				addi $s1, $s1, 1
+				addi $s0, $s0, 1
+				b array_{label_number}
+
+			array_end{label_number}:
+
+				""".replace("\t\t\t","")
+
+		stack.append(Variable(type_=type_))
+		return code
+
+
 
 
 
