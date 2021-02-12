@@ -132,7 +132,10 @@ class Cgen(Interpreter):
 		
 
 		# type
-		type_ = self.visit(tree.children[0])
+		
+		type_ = None # void
+		if isinstance(tree.children[0], Tree):
+			type_ = self.visit(tree.children[0])
 
 		# TODO check return type
 
@@ -228,7 +231,6 @@ class Cgen(Interpreter):
 		while len(stack) > stack_size_initial:
 			formal = function.formals[i]
 			arg = stack.pop()
-			print("f a", formal, arg)
 			if arg.type_.name != formal.type_.name:
 				raise SemanticError(f"function {function_name} arguments not matched with formals", tree=tree)
 			i -= 1
@@ -248,8 +250,9 @@ class Cgen(Interpreter):
 			sw $v0, -4($sp)
 			addi $sp, $sp, -4
 			"""	
-			stack.append(Variable(type_=function.return_type))
-
+		
+		stack.append(Variable(type_=function.return_type))
+		
 		return code
 
 
@@ -258,23 +261,24 @@ class Cgen(Interpreter):
 			raise SemanticError("return can only be used in function", tree=tree)
 
 		function = stack_of_functions[-1]
-		print(function)
 
 		code = '\t# return\n'
-		variable = None
+		variable = Variable(type_=Type("void"))
+
 		if len(tree.children) > 1:
 			code += self.visit(tree.children[1])
 			variable = stack.pop()
 
+			# store return value in v0
 			code += f"""
 			lw $v0, 0($sp)
 			addi $sp, $sp, 4
 
 			""".replace("\t\t\t", "\t")
-			
-		# TODO void
+		
 		# TODO maybe array need extra care 
-	
+		
+		print(variable.type_, "@$@#$@#$", function.return_type)
 		if variable.type_.name != function.return_type.name:
 			raise SemanticError("return type does not match function declaration", tree=tree)			
 
@@ -306,10 +310,9 @@ class Cgen(Interpreter):
 
 		code += self.visit(tree.children[1])
 		expr_var = stack.pop()
-
 		
 		if lvalue_var.type_.name != expr_var.type_.name:
-			raise SemanticError('lvalue type != expr type in \'expr_assign\'', tree=tree)
+			raise SemanticError(f"lvalue type '{lvalue_var.type_.name}' != expr type '{expr_var.type_.name}' in 'expr_assign'", tree=tree)
 		
 		if lvalue_var.type_.name == 'int' or\
 			 lvalue_var.type_.name == 'bool':

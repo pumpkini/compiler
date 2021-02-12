@@ -174,36 +174,6 @@ constant: INTCONSTANT
     | STRINGCONSTANT
     | NULL
 
-// keywords: EXTENDS
-//     | IMPLEMENTS
-//     | CLASS
-//     | INT
-//     | BOOL
-//     | DOUBLE
-//     | STRING 
-//     | PRIVATE
-//     | PROTECTED
-//     | PUBLIC
-//     | WHILE
-//     | IF
-//     | ELSE
-//     | FOR
-//     | VOID
-//     | RETURN
-//     | BREAK
-//     | CONTINUE
-//     | INTERFACE
-//     | PRINT
-//     | THIS
-//     | READINTEGER
-//     | READLINE
-//     | NEWARRAY
-//     | ITOD
-//     | DTOI
-//     | ITOB
-//     | BTOI
-//     | NULL
-//     | NEW
 
 EXTENDS: "extends"
 IMPLEMENTS: "implements"
@@ -265,3 +235,36 @@ COMMENT: /\/\/[^\n]*/
 %ignore WS_INLINE
 %ignore NEWLINE
 %ignore COMMENT
+
+
+
+// keywords: EXTENDS
+//     | IMPLEMENTS
+//     | CLASS
+//     | INT
+//     | BOOL
+//     | DOUBLE
+//     | STRING 
+//     | PRIVATE
+//     | PROTECTED
+//     | PUBLIC
+//     | WHILE
+//     | IF
+//     | ELSE
+//     | FOR
+//     | VOID
+//     | RETURN
+//     | BREAK
+//     | CONTINUE
+//     | INTERFACE
+//     | PRINT
+//     | THIS
+//     | READINTEGER
+//     | READLINE
+//     | NEWARRAY
+//     | ITOD
+//     | DTOI
+//     | ITOB
+//     | BTOI
+//     | NULL
+//     | NEW
