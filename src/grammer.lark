@@ -55,7 +55,7 @@ if_stmt: IF "(" expr ")" statement (ELSE statement)?
 
 while_stmt: WHILE "(" expr ")" statement
 
-for_stmt: FOR "(" expr? ";" expr ";" expr? ")" statement
+!for_stmt: FOR "(" expr? ";" expr ";" expr? ")" statement
 
 return_stmt: RETURN expr? ";"
 

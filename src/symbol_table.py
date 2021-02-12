@@ -226,7 +226,7 @@ class SymbolTableVisitor(Interpreter):
 		tree.children[1].symbol_table = tree.symbol_table
 		self.visit(tree.children[1])
 
-		# bode
+		# body
 		body_symbol_table = SymbolTable(parent=tree.symbol_table)
 		tree.children[2].symbol_table = body_symbol_table
 		self.visit(tree.children[2])
@@ -243,7 +243,73 @@ class SymbolTableVisitor(Interpreter):
 		tree.children[1].symbol_table = tree.symbol_table
 		self.visit(tree.children[1])
 
-		# bode
+		# body
 		body_symbol_table = SymbolTable(parent=tree.symbol_table)
 		tree.children[2].symbol_table = body_symbol_table
 		self.visit(tree.children[2])
+
+
+	def for_stmt(self, tree):
+		# for types: (number is child number)
+		#	for (2;4;6) 8
+		#	for (2;4;) 7
+		#	for (;3;5) 7
+		# 	for (;3;) 6
+
+		childs = []
+		for subtree in tree.children:
+			if isinstance(subtree, Tree):
+				childs.append(subtree.data)
+			else:
+				childs.append(subtree.value)
+		
+		expr1_num = None
+		expr2_num = None
+		expr3_num = None
+		body_num = None
+
+		# type 1
+		if len(childs) == 9:
+			expr1_num = 2
+			expr2_num = 4
+			expr3_num = 6
+			body_num = 8
+
+		# type 2
+		elif len(childs) == 8 and childs[3] == ';':
+			expr1_num = 2
+			expr2_num = 4
+			body_num = 7
+
+		# type 3
+		elif len(childs) == 8 and childs[2] == ';':
+			expr2_num = 3
+			expr3_num = 5
+			body_num = 7
+
+		# type 4
+		elif len(childs) == 7:
+			expr2_num = 3
+			body_num = 6
+
+		
+		# expr
+		expr_symbol_table = SymbolTable(parent=tree.symbol_table)
+		
+		if expr1_num:
+			tree.children[expr1_num].symbol_table = expr_symbol_table
+			self.visit(tree.children[expr1_num])
+		
+		tree.children[expr2_num].symbol_table = expr_symbol_table
+		self.visit(tree.children[expr2_num])
+			
+		if expr3_num:
+			tree.children[expr3_num].symbol_table = expr_symbol_table
+			self.visit(tree.children[expr3_num])
+			
+		# body
+
+		body_symbol_table = SymbolTable(parent=expr_symbol_table)
+		tree.children[body_num].symbol_table = body_symbol_table
+		self.visit(tree.children[body_num])
+

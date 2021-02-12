@@ -180,7 +180,15 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t","\t")
 			
 			lvalue_var.size = expr_var.size
-		
+
+		# assume assignment expression push a true in stack
+		code += f"""
+			li $t0, 1
+			sw $t0, 4($sp) 
+			addi $sp, $sp, 4
+		"""
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+
 		return code
 
 
@@ -489,6 +497,9 @@ class Cgen(Interpreter):
 			type_ = tree.symbol_table.find_type('int')
 			
 			value = value.lstrip('0')
+
+			if value == '':
+				value = '0'
 			
 			code = f"""
 				### constant int
@@ -1164,6 +1175,90 @@ class Cgen(Interpreter):
 
 		return code
 
+	def for_stmt(self, tree):
+		# for types: (number is child number)
+		#	for (2;4;6) 8
+		#	for (2;4;) 7
+		#	for (;3;5) 7
+		# 	for (;3;) 6
+
+		childs = []
+		for subtree in tree.children:
+			if isinstance(subtree, Tree):
+				childs.append(subtree.data)
+			else:
+				childs.append(subtree.value)
+		
+		expr1_num = None
+		expr2_num = None
+		expr3_num = None
+		body_num = None
+
+		# type 1
+		if len(childs) == 9:
+			expr1_num = 2
+			expr2_num = 4
+			expr3_num = 6
+			body_num = 8
+
+		# type 2
+		elif len(childs) == 8 and childs[3] == ';':
+			expr1_num = 2
+			expr2_num = 4
+			body_num = 7
+
+		# type 3
+		elif len(childs) == 8 and childs[2] == ';':
+			expr2_num = 3
+			expr3_num = 5
+			body_num = 7
+
+		# type 4
+		elif len(childs) == 7:
+			expr2_num = 3
+			body_num = 6
+
+		code_expr1 = ''
+		code_expr2 = ''
+		code_expr3 = ''
+		code_body = ''
+		
+		# expr
+		
+		if expr1_num:
+			code_expr1 = self.visit(tree.children[expr1_num])
+			expr1_var = stack.pop()
+		
+		code_expr2 = self.visit(tree.children[expr2_num])
+		expr2_var = stack.pop()
+			
+		if expr3_num:
+			code_expr3 = self.visit(tree.children[expr3_num])
+			expr3_var = stack.pop()
+			
+		# body
+		code_body = self.visit(tree.children[body_num])
+
+		label_num = IncLabels()
+
+		code = f"""
+		### for stmt no. {label_num}
+		{code_expr1}
+		start_for_{label_num}:
+			{code_expr2}
+			
+			lw $t0, 0($sp)
+			beq $t0, $zero, end_for_{label_num}
+
+			{code_body}
+			{code_expr3}
+
+			b start_for_{label_num}
+
+		end_for_{label_num}:
+		""".replace("\t\t", "")
+
+		return code
 
 
 
@@ -1191,9 +1286,11 @@ def generate_tac(code):
 
 	try:
 		ParentVisitor().visit_topdown(tree)
+		print("Parent visitor ended")
 		tree.symbol_table = SymbolTable()
 		add_initial_types(tree.symbol_table)
 		SymbolTableVisitor().visit_topdown(tree)
+		print("SymbolTable visitor ended")
 		mips_code = Cgen().visit(tree)
 
 	except SemanticError as err:
