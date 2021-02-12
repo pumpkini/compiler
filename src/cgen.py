@@ -88,7 +88,15 @@ class Cgen(Interpreter):
 		code_data_seg += "\n"
 
 		return code_data_seg + code
-		
+	
+	def statement_block(self, tree):
+		children_code = self.visit_children(tree)
+		children_code = [c if c else '' for c in children_code]
+		code = '\n'.join(children_code)
+
+		return code
+	
+
 	def	decl(self, tree):
 
 		code = ''
@@ -102,9 +110,9 @@ class Cgen(Interpreter):
 
 		# stack frame
 		#			------------------- 		
-		# 			| 	argument n    |			\
+		# 			| 	argument 1    |			\
 		# 			| 		...		  |				=> caller
-		# 			| 	argument 1    |			/
+		# 			| 	argument n    |			/
 		#			------------------- 
 		#  $fp -> 	| saved registers |			\
 		#  $fp - 4	| 		...		  |			 \
@@ -115,6 +123,12 @@ class Cgen(Interpreter):
 		#  $sp - 4	-------------------
 
 		# access arguments with $fp + 4, $fp + 8, ...
+		# $fp -> $s0 
+		# ..
+		# $fp+32 -> $s7
+		# $fp+36 -> old $fp
+		# $fp+40 -> $ra
+
 
 		# type
 		type_ = self.visit(tree.children[0])
@@ -131,10 +145,10 @@ class Cgen(Interpreter):
 		formals_code = ""
 		
 		index = 4
-		for arg in function.arguments:
+		for arg in function.arguments[::-1]:
 			formals_code += f"""
-			sw $t0, {index}($fp)
-			lw $t0, {arg.address}($gp)
+			lw $t0, {index}($fp)
+			sw $t0, {arg.address}($gp)
 			""".replace("\t\t\t", "\t")
 			index += 4
 
@@ -183,14 +197,40 @@ class Cgen(Interpreter):
 		""".replace("\t\t", "")
 
 		return code
+	
+	def call(self, tree):
+		# TODO add member function calls
+
+		function_name = tree.children[0].value
+
+		function = tree.symbol_table.find_func(function_name)
+
+		if not function:
+			raise SemanticError(f"function {function_name} does not exist in this scope", tree=tree)
+
+		
+		# TODO check arg types
+
+		stack_size_initial = len(stack)
+
+		actuals_code = self.visit(tree.children[1])
 
 
-	def statement_block(self, tree):
-		children_code = self.visit_children(tree)
-		children_code = [c if c else '' for c in children_code]
-		code = '\n'.join(children_code)
+		code = f"""
+			{actuals_code}
+			jal	{function_name}
+		""".replace("\t\t\t", "\t")
+
+		while len(stack) > stack_size_initial:
+			stack.pop()
+
+		code += f"""
+			addi $sp, $sp, {len(function.arguments) * 4}
+		""".replace("\t\t\t", "\t")
 
 		return code
+	
+
 
 	def variable(self, tree):
 		type_ = self.visit(tree.children[0])
@@ -530,7 +570,7 @@ class Cgen(Interpreter):
 		stack.append(variable)
 
 		code = ''
-		if variable.type_.name == "double":
+		if variable.type_.name == "double": # TODO do we need this aslan?
 			code = f"""
 					### ident
 					l.s $f2, {variable.address}($gp)
@@ -704,6 +744,9 @@ class Cgen(Interpreter):
 				addi $sp, $sp, {(len(stack) - stack_size_initial ) * 4}
 				### print stmt end
 				""".replace("\t\t\t\t","\t")
+
+		while len(stack) > stack_size_initial:
+			stack.pop()
 
 		return code
 
