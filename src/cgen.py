@@ -133,11 +133,9 @@ class Cgen(Interpreter):
 
 		# type
 		
-		type_ = None # void
+		type_ = Type("void")
 		if isinstance(tree.children[0], Tree):
 			type_ = self.visit(tree.children[0])
-
-		# TODO check return type
 
 		# name
 		func_name = tree.children[1].value
@@ -617,7 +615,6 @@ class Cgen(Interpreter):
 		return code
 
 
-	# TODO  other l_value expr_ident expr_expr
 	def ident(self, tree):
 		var_name = tree.children[0].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
@@ -642,8 +639,6 @@ class Cgen(Interpreter):
 		
 		return code
 		
-
-	# TODO do we need null?
 	def constant(self, tree):
 		constant_type = tree.children[0].type
 		value = "????"
@@ -738,6 +733,10 @@ class Cgen(Interpreter):
 			constant_str_end_{label_number}:
 
 				""".replace("\t\t\t","")
+		
+		if constant_type == 'NULL':
+			# TODO ??
+			type_ = Type('null')
 
 		stack.append(Variable(type_=type_))
 		return code
@@ -932,13 +931,13 @@ class Cgen(Interpreter):
 
 			cmpne:
     			li     $t0,0
-				sw $t0, 4($sp)
-				addi $sp, $sp, 4
+				sw $t0, -4($sp)
+				addi $sp, $sp, -4
 
 			cmpeq:
   				li     $t0,1
-				sw $t0, 4($sp)
-				addi $sp, $sp, 4
+				sw $t0, -4($sp)
+				addi $sp, $sp, -4
 				""".replace("\t\t\t","")
 				
 		else:

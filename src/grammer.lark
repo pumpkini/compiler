@@ -113,60 +113,17 @@ print_stmt: PRINT "(" actuals ")" ";"
 
 
 l_value : IDENT -> ident 
-    | expr7 "." IDENT -> expr_ident 
-    | expr7 "[" expr "]" -> expr_expr
+    | expr7 "." IDENT -> l_value_class_field
+    | expr7 "[" expr "]" -> l_value_array
 
 
-call : IDENT  "(" actuals ")" 
-    |  expr7  "."  IDENT  "(" actuals ")" -> method
-
-
-// ?expr: l_value "=" expr -> expr_assign
-//         | constant
-//         | l_value
-//         | THIS
-//         | call
-//         | "(" expr ")"
-//         | expr "+" expr -> add
-//         | expr "-" expr -> sub
-//         | expr "*" expr -> mul
-//         | expr "/" expr -> div
-//         | expr "%" expr -> mod
-//         | "-" expr -> neg
-//         | boolean_expr
-//         | logical_expr
-//         | READINTEGER "(" ")" -> read_integer
-//         | READLINE "(" ")" -> read_line
-//         | NEW IDENT -> new_ident
-//         | NEWARRAY "(" expr "," type ")" -> new_array
-//         | ITOD "(" expr ")" -> itod
-//         | DTOI "(" expr ")" -> dtoi
-//         | ITOB "(" expr ")" -> itob
-//         | BTOI "(" expr ")" -> btoi
-
-
-// !boolean_expr:  expr "<" expr
-//         | expr "<=" expr
-//         | expr ">" expr
-//         | expr ">=" expr
-//         | expr "==" expr
-//         | expr "!=" expr
-
-// !logical_expr: expr "&&" expr
-//         | expr "||" expr
-//         | "!" expr -> not_expr
-
-
-// l_value: IDENT -> ident
-//         | expr "." IDENT -> expr_ident
-//         | expr "[" expr "]" -> expr_expr
-
-// call: IDENT "(" actuals ")"
-//         | expr "." IDENT "(" actuals ")"
+call : IDENT  "(" actuals ")"
+    |  expr7  "."  IDENT  "(" actuals ")" -> method_call
 
 
 actuals: expr ("," expr)*
     | 
+
 
 constant: INTCONSTANT
     | DOUBLECONSTANT
@@ -268,3 +225,48 @@ COMMENT: /\/\/[^\n]*/
 //     | BTOI
 //     | NULL
 //     | NEW
+
+
+
+// ?expr: l_value "=" expr -> expr_assign
+//         | constant
+//         | l_value
+//         | THIS
+//         | call
+//         | "(" expr ")"
+//         | expr "+" expr -> add
+//         | expr "-" expr -> sub
+//         | expr "*" expr -> mul
+//         | expr "/" expr -> div
+//         | expr "%" expr -> mod
+//         | "-" expr -> neg
+//         | boolean_expr
+//         | logical_expr
+//         | READINTEGER "(" ")" -> read_integer
+//         | READLINE "(" ")" -> read_line
+//         | NEW IDENT -> new_ident
+//         | NEWARRAY "(" expr "," type ")" -> new_array
+//         | ITOD "(" expr ")" -> itod
+//         | DTOI "(" expr ")" -> dtoi
+//         | ITOB "(" expr ")" -> itob
+//         | BTOI "(" expr ")" -> btoi
+
+
+// !boolean_expr:  expr "<" expr
+//         | expr "<=" expr
+//         | expr ">" expr
+//         | expr ">=" expr
+//         | expr "==" expr
+//         | expr "!=" expr
+
+// !logical_expr: expr "&&" expr
+//         | expr "||" expr
+//         | "!" expr -> not_expr
+
+
+// l_value: IDENT -> ident
+//         | expr "." IDENT -> expr_ident
+//         | expr "[" expr "]" -> expr_expr
+
+// call: IDENT "(" actuals ")"
+//         | expr "." IDENT "(" actuals ")"
