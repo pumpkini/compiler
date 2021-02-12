@@ -912,30 +912,39 @@ class Cgen(Interpreter):
 		elif var1.type_.name == 'string':
 			# s0 str1 address
 			# s1 str2 address
+			labelcnt = IncLabels()
 			code = f"""
 				### eq string
-				la $s1, 0($sp)
-				la $s0, 4($sp)
+				lw $s1, 0($sp)
+				lw $s0, 4($sp)
 
-			cmploop:
+			cmploop_{labelcnt}:
     			lb $t2,0($s0)
     			lb $t3,0($s1)
-   				bne     $t2,$t3,cmpne
+   				bne     $t2,$t3,cmpne_{labelcnt}
 
-    			beq     $t2,$zero,cmpeq
+    			beq     $t2,$zero,cmpeq_{labelcnt}
+				beq     $t3,$zero,cmpeq_{labelcnt}
 
    	 			addi    $s0,$s0,1
     			addi    $s1,$s1,1
 
-			cmpne:
+				j       cmploop_{labelcnt}
+
+			cmpne_{labelcnt}:
     			li     $t0,0
 				sw $t0, 4($sp)
 				addi $sp, $sp, 4
+				j end_{labelcnt}
 
-			cmpeq:
+			cmpeq_{labelcnt}:
   				li     $t0,1
 				sw $t0, 4($sp)
 				addi $sp, $sp, 4
+				j end_{labelcnt}
+
+			end_{labelcnt}:
+
 				""".replace("\t\t\t","")
 				
 		else:
