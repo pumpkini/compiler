@@ -1231,7 +1231,7 @@ class Cgen(Interpreter):
 
 		statement_code = self.visit(tree.children[2])
 
-		current_for_or_while_labels.pop();
+		current_for_or_while_labels.pop()
 		
 		code = f"""
 		### while stmt no. {label_num}
@@ -1368,7 +1368,9 @@ class Cgen(Interpreter):
 
 	def new_array(self, tree):
 		size = int(tree.children[0].value)
-		type_ = tree.symbol_table.find_type('array')
+		mem_type = tree.children[1].value
+
+		type_ = tree.symbol_table.find_type(Type("array",4,mem_type))
 
 		if size < 0 or type(size) != "int":
 			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
@@ -1401,6 +1403,7 @@ def add_initial_types(symbol_table):
 	symbol_table.add_type(Type("bool",4))
 	symbol_table.add_type(Type("string",4))
 	symbol_table.add_type(Type("void",0))
+	symbol_table.add_type(Type("array",4))
 
 
 def generate_tac(code):
