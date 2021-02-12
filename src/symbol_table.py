@@ -6,9 +6,10 @@ from lark import Tree
 class Type():
 	# types = {}
 	# types_index = {}
-	def __init__(self, name, size=None):
+	def __init__(self, name, size=None, arr_type= None):
 		self.name = name
 		self.size = size
+		self.arr_type = arr_type
 		# self.index = len(Type.types)
 		# Type.types[name] = self
 		# Type.types_index[self.index] = name

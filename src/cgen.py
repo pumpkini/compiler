@@ -827,8 +827,8 @@ class Cgen(Interpreter):
 
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'equal\'', tree=tree)
-		#TODO check for null 
-		
+
+		#TODO check for null and objects
 		if var1.type_.name == 'int' or var1.type_.name == 'bool':
 			# t0 operand 1
 			# t1 operand 2
@@ -845,7 +845,7 @@ class Cgen(Interpreter):
 			# f2 operand 2
 			l1 = IncLabels()
 			code += f"""
-					### eq
+					### equal double
 					l.s $f2, 0($sp)
 					l.s $f4, 4($sp)
 					li $t0 , 0
@@ -857,14 +857,43 @@ class Cgen(Interpreter):
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t\t", "\t").replace("\t\t\t\t", "")
 
-		# TODO for and objects
+		elif var1.type_.name == 'string':
+			# s0 str1 address
+			# s1 str2 address
+			code = f"""
+				### eq string
+				la $s1, 0($sp)
+				la $s0, 4($sp)
+
+			cmploop:
+    			lb $t2,0($s0)
+    			lb $t3,0($s1)
+   				bne     $t2,$t3,cmpne
+
+    			beq     $t2,$zero,cmpeq
+
+   	 			addi    $s0,$s0,1
+    			addi    $s1,$s1,1
+
+			cmpne:
+    			li     $t0,0
+				sw $t0, 4($sp)
+				addi $sp, $sp, 4
+
+			cmpeq:
+  				li     $t0,1
+				sw $t0, 4($sp)
+				addi $sp, $sp, 4
+				""".replace("\t\t\t","")
+				
 		else:
 			raise SemanticError('types are not suitable for \'eq\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
 		return code
 
-		
+
+
 	def not_equal(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
@@ -1274,7 +1303,7 @@ class Cgen(Interpreter):
 
 		statement_code = self.visit(tree.children[2])
 
-		current_for_or_while_labels.pop();
+		current_for_or_while_labels.pop()
 		
 		code = f"""
 		### while stmt no. {label_num}
@@ -1411,7 +1440,9 @@ class Cgen(Interpreter):
 
 	def new_array(self, tree):
 		size = int(tree.children[0].value)
-		type_ = tree.symbol_table.find_type('array')
+		mem_type = tree.children[1].value
+
+		type_ = tree.symbol_table.find_type(Type("array",4,mem_type))
 
 		if size < 0 or type(size) != "int":
 			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
@@ -1444,6 +1475,7 @@ def add_initial_types(symbol_table):
 	symbol_table.add_type(Type("bool",4))
 	symbol_table.add_type(Type("string",4))
 	symbol_table.add_type(Type("void",0))
+	symbol_table.add_type(Type("array",4))
 
 
 def generate_tac(code):
