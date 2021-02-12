@@ -1310,37 +1310,24 @@ class Cgen(Interpreter):
 		size = int(tree.children[0].value)
 		type_ = tree.symbol_table.find_type('array')
 
-		array_label = len(arrays)
-		
-		#constant_strings.append(value)
-		label_number = IncLabels()
+		if size < 0 or type(size) != "int":
+			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
 
 		code = f"""
 				### array
 				li $v0, 9		# syscall for allocate byte
-				li $a0, {size + 1}
+				li $a0, {(size + 1) * 4}
 				syscall
 
 				move $s0, $v0		# s0: address of array
 
+				sw {size}, 0($s0)
+
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
 
-				la $s1, ARRAY_{array_label}
-				li $t1, 0
-
-			array_{label_number}:
-				lb $t1, 0($s1)
-				sb $t1, 0($s0)
-				beq $t1, $zero, array_end{label_number} 
-				addi $s1, $s1, 1
-				addi $s0, $s0, 1
-				b array_{label_number}
-
-			array_end{label_number}:
-
 				""".replace("\t\t\t","")
-
+		# TODO
 		stack.append(Variable(type_=type_))
 		return code
 
