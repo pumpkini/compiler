@@ -434,7 +434,6 @@ class Cgen(Interpreter):
 			add_str_end_{label_number}:
 
 				""".replace("\t\t\t","")
-			pass
 
 		elif  var1.type_.name == "array":
 			# TODO
@@ -1244,7 +1243,7 @@ class Cgen(Interpreter):
 				### read Line
 				li $v0, 9	# syscall for allocating bytes
 				li $a0, 1000
-				syscall		
+				syscall
 				sub $sp, $sp, 4
 				sw $v0, 0($sp)
 				move $a0, $v0
@@ -1252,22 +1251,22 @@ class Cgen(Interpreter):
 				li $v0, 8	# syscall for read string
 				syscall
 				lw $a0, 0($sp)
-		line_{l1}:
+			line_{l1}:
 				lb $t0, 0($a0)
 				beq $t0, 0, end_line_{l1}
 				bne $t0, 10, remover_{l2}
 				li $t2, 0
 				sb $t2, 0($a0)
-		remover_{l2}:
+			remover_{l2}:
 				bne $t0, 13, remover_{l3}
 				li $t2, 0
 				sb $t2, 0($a0)
 			remover_{l3}:
 				addi $a0, $a0, 1
 				j line_{l1}
-		end_line_{l1}:
+			end_line_{l1}:
 					
-				""".replace("\t\t\t\t", "\t")
+				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('string', tree=tree)))
 		return code
 
