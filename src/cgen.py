@@ -12,9 +12,11 @@ stack = []
 constant_strings = []
 arrays = []
 
-# for using in break and continue
-current_for_or_while_labels = [] # (label_for_continue, label_for_break) 
+# usage in break and continue
+stack_of_for_and_while_labels = [] # (label_for_continue, label_for_break) 
 
+# usage in return
+stack_of_functions = [] 
 
 def IncLabels():
 	Cgen.labels+=1
@@ -125,12 +127,9 @@ class Cgen(Interpreter):
 		#  $sp - 4	-------------------
 
 		# access arguments with $fp + 4, $fp + 8, ...
-		# $fp -> $s0 
-		# ..
-		# $fp+32 -> $s7
-		# $fp+36 -> old $fp
-		# $fp+40 -> $ra
 
+		# return value in v0
+		
 
 		# type
 		type_ = self.visit(tree.children[0])
@@ -139,8 +138,8 @@ class Cgen(Interpreter):
 
 		# name
 		func_name = tree.children[1].value
-		function = tree.symbol_table.find_func(func_name)
-		
+		function = tree.symbol_table.find_func(func_name, tree=tree)
+
 		# formals
 		self.visit(tree.children[2])
 
@@ -155,16 +154,16 @@ class Cgen(Interpreter):
 			index += 4
 
 		# body
-		statement_block = self.visit(tree.children[3])		
+		stack_of_functions.append(function)
 
-		func_label = func_name
-		if func_name != 'main':
-			func_label = 'func_' + func_label
+		statement_block = self.visit(tree.children[3])		
+		
+		stack_of_functions.pop()
 
 		code = f"""
 		### Function
 
-		{func_label}:
+		{function.label}:
 			# func store registers
 
 			sw $fp, -4($sp)
@@ -188,8 +187,9 @@ class Cgen(Interpreter):
 			# func statement
 			{statement_block}
 			
+		{function.label}_end:
 			# func load registers
-			
+
 			lw $ra, -4($fp)
 			lw $s0, -8($fp)
 			lw $s1, -12($fp)
@@ -213,10 +213,7 @@ class Cgen(Interpreter):
 		# TODO add member function calls
 
 		function_name = tree.children[0].value
-		function = tree.symbol_table.find_func(function_name)
-
-		if not function:
-			raise SemanticError(f"function {function_name} does not exist in this scope", tree=tree)
+		function = tree.symbol_table.find_func(function_name, tree=tree)
 
 
 		stack_size_initial = len(stack)
@@ -235,25 +232,64 @@ class Cgen(Interpreter):
 			if arg.type_.name != formal.type_.name:
 				raise SemanticError(f"function {function_name} arguments not matched with formals", tree=tree)
 			i -= 1
-
-
-		func_label = "func_" + function_name
 		
 		code = f"""
 			{actuals_code}
-			jal	{func_label}
+			jal	{function.label}
 		
 			addi $sp, $sp, {arguments_number * 4}
 		""".replace("\t\t\t", "\t")
 
+		# return type != void
+		# return value in v0
+
+		if function.return_type:
+			code += f"""
+			sw $v0, -4($sp)
+			addi $sp, $sp, -4
+			"""	
+			stack.append(Variable(type_=function.return_type))
+
 		return code
+
+
+	def return_stmt(self, tree):
+		if len(stack_of_functions) == 0:
+			raise SemanticError("return can only be used in function", tree=tree)
+
+		function = stack_of_functions[-1]
+		print(function)
+
+		code = '\t# return\n'
+		variable = None
+		if len(tree.children) > 1:
+			code += self.visit(tree.children[1])
+			variable = stack.pop()
+
+			code += f"""
+			lw $v0, 0($sp)
+			addi $sp, $sp, 4
+
+			""".replace("\t\t\t", "\t")
+			
+		# TODO void
+		# TODO maybe array need extra care 
 	
+		if variable.type_.name != function.return_type.name:
+			raise SemanticError("return type does not match function declaration", tree=tree)			
+
+		code += f"""
+		j {function.label}_end
+		""".replace("\t\t", "")
+		
+		return code
+
 
 
 	def variable(self, tree):
 		type_ = self.visit(tree.children[0])
 		var_name = tree.children[1].value		
-		variable = tree.symbol_table.find_var(var_name)
+		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
 		# old type doesnt have size so change it to Type (TODO maybe this should change)
 		variable.type_ = type_
@@ -308,7 +344,7 @@ class Cgen(Interpreter):
 			sw $t0, -4($sp) 
 			addi $sp, $sp, -4
 		"""
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 
 		return code
 
@@ -581,9 +617,7 @@ class Cgen(Interpreter):
 	# TODO  other l_value expr_ident expr_expr
 	def ident(self, tree):
 		var_name = tree.children[0].value
-		variable = tree.symbol_table.find_var(var_name)
-		if not variable:
-			raise SemanticError('ident not found', tree=tree)
+		variable = tree.symbol_table.find_var(var_name, tree=tree)
 		
 		stack.append(variable)
 
@@ -615,7 +649,7 @@ class Cgen(Interpreter):
 		code = ''
 		if constant_type == 'INTCONSTANT':
 			value = tree.children[0].value.lower()
-			type_ = tree.symbol_table.find_type('int')
+			type_ = tree.symbol_table.find_type('int', tree=tree)
 			
 			value = value.lstrip('0')
 
@@ -632,7 +666,7 @@ class Cgen(Interpreter):
 
 		if constant_type == 'DOUBLECONSTANT':
 			value = tree.children[0].value.lower()
-			type_ = tree.symbol_table.find_type('double')
+			type_ = tree.symbol_table.find_type('double', tree=tree)
 
 			value = value.lstrip('0')
 
@@ -657,7 +691,7 @@ class Cgen(Interpreter):
 
 		if constant_type == 'BOOLCONSTANT':
 			value = 1 if tree.children[0].value == 'true' else 0
-			type_ = tree.symbol_table.find_type('bool')
+			type_ = tree.symbol_table.find_type('bool', tree=tree)
 			code = f"""
 				### constant bool
 				li $t0, {value}
@@ -668,7 +702,7 @@ class Cgen(Interpreter):
 
 		if constant_type == 'STRINGCONSTANT':
 			value = tree.children[0].value[1:-1]
-			type_ = tree.symbol_table.find_type('string')
+			type_ = tree.symbol_table.find_type('string', tree=tree)
 
 			constant_string_label = len(constant_strings)
 			constant_strings.append(value)
@@ -707,7 +741,7 @@ class Cgen(Interpreter):
 		
 		
 	def print_stmt(self, tree):
-		code = f"""\t### print stmt begin"""
+		code = f"""\t\t\t### print stmt begin\n"""
 
 		stack_size_initial = len(stack)
 
@@ -776,7 +810,7 @@ class Cgen(Interpreter):
 	# type return Type
 	def type(self, tree):
 		type_name = tree.children[0].value
-		type_ = tree.symbol_table.find_type(type_name)
+		type_ = tree.symbol_table.find_type(type_name, tree=tree)
 
 		if not type_:
 			raise SemanticError("Type not in scope",tree=tree)
@@ -805,7 +839,7 @@ class Cgen(Interpreter):
 				addi $sp, $sp, 4
 				""".replace("\t\t\t", "")
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -831,7 +865,7 @@ class Cgen(Interpreter):
 				addi $sp, $sp, 4
 				""".replace("\t\t\t", "")
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -907,7 +941,7 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'eq\'', tree=tree)
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -954,7 +988,7 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'neq\'', tree=tree)
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 	
@@ -999,7 +1033,7 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'lt\'', tree=tree)
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -1044,7 +1078,7 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'le\'', tree=tree)
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -1089,7 +1123,7 @@ class Cgen(Interpreter):
 		else:
 			raise SemanticError('types are not suitable for \'gt\'', tree=tree)
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -1133,7 +1167,7 @@ class Cgen(Interpreter):
 			raise SemanticError('types are not suitable for \'ge\'', tree=tree)
 
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -1152,7 +1186,7 @@ class Cgen(Interpreter):
 				sw $t1, 0($sp) 
 				""".replace("\t\t\t", "")
 
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 	def read_line(self, tree):
@@ -1187,7 +1221,7 @@ class Cgen(Interpreter):
 				end_line_{l1}:
 					
 				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('string')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('string', tree=tree)))
 		return code
 
 	def read_integer(self, tree):
@@ -1198,7 +1232,7 @@ class Cgen(Interpreter):
 				addi $sp, $sp, -4
 				sw $t0, 0($sp)
 				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
 
 
@@ -1214,7 +1248,7 @@ class Cgen(Interpreter):
 					cvt.s.w $f2, $f0
 					s.s $f2, 0($sp)
 				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('double')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('double', tree=tree)))
 		return code
 	
 
@@ -1237,7 +1271,7 @@ class Cgen(Interpreter):
 				cvt.w.s $f2, $f0
 				s.s $f2, 0($sp)
 				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
 
 
@@ -1253,7 +1287,7 @@ class Cgen(Interpreter):
 				sne $t0, $zero, $t0
 				sw $t0, 0($sp)
 				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
 
@@ -1266,18 +1300,7 @@ class Cgen(Interpreter):
 
 		# no need to do anything!
 
-		# l1 = IncLabels()
-		# code += f"""
-		# 		btoi_{l1}:
-		# 			lw $t0, 0($sp)
-		# 			beq $t0, 0, set_zero_{l1}
-		# 			addi $t0, $zero, 1
-		# 			sw $t0, 0($sp)
-		# 		set_zero_{l1}:
-		# 			mov $t0, $zero
-		# 			sw $t0, 0($sp)
-		# 		""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
+		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
 
 
@@ -1317,11 +1340,11 @@ class Cgen(Interpreter):
 
 		label_num = IncLabels()
 
-		current_for_or_while_labels.append((f"start_while_{label_num}", f"end_while_{label_num}"))
+		stack_of_for_and_while_labels.append((f"start_while_{label_num}", f"end_while_{label_num}"))
 
 		statement_code = self.visit(tree.children[2])
 
-		current_for_or_while_labels.pop()
+		stack_of_for_and_while_labels.pop()
 		
 		code = f"""
 		### while stmt no. {label_num}
@@ -1388,7 +1411,7 @@ class Cgen(Interpreter):
 		
 		label_num = IncLabels()
 
-		current_for_or_while_labels.append((f"continue_for_{label_num}", f"end_for_{label_num}"))
+		stack_of_for_and_while_labels.append((f"continue_for_{label_num}", f"end_for_{label_num}"))
 
 		# expr
 		if expr1_num:
@@ -1405,7 +1428,7 @@ class Cgen(Interpreter):
 		# body
 		code_body = self.visit(tree.children[body_num])
 
-		current_for_or_while_labels.pop()
+		stack_of_for_and_while_labels.pop()
 
 		code = f"""
 		### for stmt no. {label_num}
@@ -1430,10 +1453,10 @@ class Cgen(Interpreter):
 
 	
 	def break_stmt(self, tree):
-		if len(current_for_or_while_labels) == 0:
+		if len(stack_of_for_and_while_labels) == 0:
 			raise SemanticError("break can only be used in for/while", tree=tree)
 
-		labels = current_for_or_while_labels[-1]
+		labels = stack_of_for_and_while_labels[-1]
 
 		code = f"""
 		# break
@@ -1443,10 +1466,10 @@ class Cgen(Interpreter):
 		return code
 
 	def continue_stmt(self, tree):
-		if len(current_for_or_while_labels) == 0:
+		if len(stack_of_for_and_while_labels) == 0:
 			raise SemanticError("continue can only be used in for/while", tree=tree)
 
-		labels = current_for_or_while_labels[-1]
+		labels = stack_of_for_and_while_labels[-1]
 
 		code = f"""
 		# continue
