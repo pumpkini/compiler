@@ -1483,16 +1483,31 @@ class Cgen(Interpreter):
 
 
 	def new_array(self, tree):
-		size = int(tree.children[0].value)
-		mem_type = tree.children[1].value
+		code = self.visit(tree.children[0])
+		size = int(stack.pop())
 
-		type_ = tree.symbol_table.find_type(Type("array",4,mem_type))
+		mem_type_name = tree.children[1].value
+
+		mem_type = tree.symbol_table.find_type(Type(mem_type_name))
+
+		type_ = Type("array",arr_type = mem_type)
 
 		if size < 0 or type(size) != "int":
 			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
 
-		code = f"""
+		code += f"""
 				### array
+
+				lw $t0, 0($sp)
+
+				la $a0 , $t0
+				li $v0 , 51
+				syscall
+
+				bneq $a1,  0, array_size_err_
+
+				ble $t0, 0 , array_size_err_
+
 				li $v0, 9		# syscall for allocate byte
 				li $a0, {(size + 1) * 4}
 				syscall
@@ -1504,8 +1519,14 @@ class Cgen(Interpreter):
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
 
+			array_size_err_: 
+				la $a0 , errorMsg
+				li $v0 , 4
+				syscall
+				
 				""".replace("\t\t\t","")
 		# TODO
+		
 		stack.append(Variable(type_=type_))
 		return code
 
