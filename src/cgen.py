@@ -1059,10 +1059,9 @@ class Cgen(Interpreter):
 			raise SemanticError('variable type is not integer in \'itod\'', tree=tree)
 
 		code += f"""
-					la $t0, 0($sp)
-					mtc1 $t0, $f0
-					cvt.s.w $f0, $f0
-					s.s $f0, 0($sp)
+					l.s $f0, 0($sp)
+					cvt.s.w $f2, $f0
+					s.s $f2, 0($sp)
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('double')))
 		return code
@@ -1076,11 +1075,9 @@ class Cgen(Interpreter):
 			raise SemanticError('variable type is not double in \'dtoi\'', tree=tree)
 
 		code+= f"""
-				la $t0, 0($sp)
-				mov $f0, $t0
-				cvt.w.s $f0, $f0
-				mfc1 $t0, $f0
-				sw $a0, 0($sp)
+				l.s $f0, 0($sp)
+				cvt.w.s $f2, $f0
+				s.s $f2, 0($sp)
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
 		return code
@@ -1094,9 +1091,8 @@ class Cgen(Interpreter):
 			raise SemanticError('variable type is not integer in \'itob\'', tree=tree)
 
 		code += f"""
-				la $t0, 0($sp)
-				li $t1, 0
-				sne $t0, $t1, $t0
+				lw $t0, 0($sp)
+				sne $t0, $zero, $t0
 				sw $t0, 0($sp)
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool')))
@@ -1110,17 +1106,19 @@ class Cgen(Interpreter):
 		if var1.type_.name != 'bool':
 			raise SemanticError('variable type is not bool in \'btoi\'', tree=tree)
 
-		l1 = IncLabels()
-		code += f"""
-				btoi_{l1}:
-					la $t0, 0($sp)
-					beq $t0, 0, set_zero_{l1}
-					addi $t0, $zero, 1
-					sw $t0, 0($sp)
-				set_zero_{l1}:
-					mov $t0, $zero
-					sw $t0, 0($sp)
-				""".replace("\t\t\t", "")
+		# no need to do anything!
+
+		# l1 = IncLabels()
+		# code += f"""
+		# 		btoi_{l1}:
+		# 			lw $t0, 0($sp)
+		# 			beq $t0, 0, set_zero_{l1}
+		# 			addi $t0, $zero, 1
+		# 			sw $t0, 0($sp)
+		# 		set_zero_{l1}:
+		# 			mov $t0, $zero
+		# 			sw $t0, 0($sp)
+		# 		""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('int')))
 		return code
 
@@ -1262,6 +1260,7 @@ class Cgen(Interpreter):
 		""".replace("\t\t", "")
 
 		return code
+
 
 	def new_array(self, tree):
 		size = int(tree.children[0].value)
