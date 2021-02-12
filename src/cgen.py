@@ -1076,7 +1076,9 @@ class Cgen(Interpreter):
 			raise SemanticError('variable type is not double in \'dtoi\'', tree=tree)
 
 		code+= f"""
+				li $f4, 0.5
 				l.s $f0, 0($sp)
+				add.s $f0, $f0, $f4
 				cvt.w.s $f2, $f0
 				s.s $f2, 0($sp)
 				""".replace("\t\t\t", "")
