@@ -21,14 +21,9 @@ def IncLabels():
 	return Cgen.labels
 
 
-def IncDataPointer(size):
-	cur = Cgen.data_pointer
-	Cgen.data_pointer += size
-	return cur
 
 class Cgen(Interpreter):
 	labels = 0
-	data_pointer = 0
 
 
 	def program(self, tree):
@@ -39,7 +34,7 @@ class Cgen(Interpreter):
 	
 		code += """
 
-		### function: Print_bool(a0: boolean_value)
+		### Function: Print_bool(a0: boolean_value)
 
 		print_bool: 
 			beq $a0, $zero, print_bool_false
@@ -61,7 +56,7 @@ class Cgen(Interpreter):
 			jr $ra
 
 
-		### function: String_length(a0: string_addr) $v0: length without zero terminated char
+		### Function: String_length(a0: string_addr) $v0: length without zero terminated char
 
 		string_length: 
 			li $v0, 0
@@ -104,23 +99,91 @@ class Cgen(Interpreter):
 		return code
 	
 	def function_decl(self, tree):
-		type_ = self.visit(tree.children[0])
-		func_name = tree.children[1].value
-		formals = self.visit(tree.children[2])
 
-		statement_block = self.visit(tree.children[3])
+		# stack frame
+		#			------------------- 		
+		# 			| 	argument n    |			\
+		# 			| 		...		  |				=> caller
+		# 			| 	argument 1    |			/
+		#			------------------- 
+		#  $fp -> 	| saved registers |			\
+		#  $fp - 4	| 		...		  |			 \
+		#			-------------------				=> callee
+		# 			| 	local vars	  |			 /
+		# 			| 		...		  |			/
+		#  $sp ->	| 		...		  |			
+		#  $sp - 4	-------------------
+
+		# access arguments with $fp + 4, $fp + 8, ...
+
+		# type
+		type_ = self.visit(tree.children[0])
 
 		# TODO check return type
-		# TODO do something with arguments
-		# TODO save registers, do sth with fp ra
+
+		# name
+		func_name = tree.children[1].value
+		function = tree.symbol_table.find_func(func_name)
 		
+		# formals
+		self.visit(tree.children[2])
+
+		formals_code = ""
+		
+		index = 4
+		for arg in function.arguments:
+			formals_code += f"""
+			sw $t0, {index}($fp)
+			lw $t0, {arg.address}($gp)
+			""".replace("\t\t\t", "\t")
+			index += 4
+
+		# body
+		statement_block = self.visit(tree.children[3])		
+
 		code = f"""
-{func_name}:
-	{statement_block}
-	jr $ra
-		"""
+		### Function
+
+		{func_name}:
+			# func store registers
+			sw $s0, -4($sp)
+			sw $s1, -8($sp)
+			sw $s2, -12($sp)
+			sw $s3, -16($sp)
+			sw $s4, -20($sp)
+			sw $s5, -24($sp)
+			sw $s6, -28($sp)
+			sw $s7, -32($sp)
+			sw $fp, -36($sp)
+			sw $ra, -40($sp)
+
+			add $fp, $sp, -4	# new frame pointer
+			addi $sp, $sp, -40
+
+			# func formals
+			{formals_code}
+
+			# func statement
+			{statement_block}
+			
+			# func load registers
+			addi $sp, $sp, 40
+			lw $s0, -4($sp)
+			lw $s1, -8($sp)
+			lw $s2, -12($sp)
+			lw $s3, -16($sp)
+			lw $s4, -20($sp)
+			lw $s5, -24($sp)
+			lw $s6, -28($sp)
+			lw $s7, -32($sp)
+			lw $fp, -36($sp)
+			lw $ra, -40($sp)
+
+			jr $ra
+		""".replace("\t\t", "")
 
 		return code
+
 
 	def statement_block(self, tree):
 		children_code = self.visit_children(tree)
@@ -132,14 +195,10 @@ class Cgen(Interpreter):
 	def variable(self, tree):
 		type_ = self.visit(tree.children[0])
 		var_name = tree.children[1].value		
-
-		size = 1
-		total_size = size * type_.size
-
 		variable = tree.symbol_table.find_var(var_name)
-	
-		variable.size = size
-		variable.address = IncDataPointer(total_size)
+
+		# old type doesnt have size so change it to Type (TODO maybe this should change)
+		variable.type_ = type_
 	
 		return ""	
 
@@ -653,6 +712,7 @@ class Cgen(Interpreter):
 		code = '\n'.join(actuals)
 		return code
 
+	# type return Type
 	def type(self, tree):
 		type_name = tree.children[0].value
 		type_ = tree.symbol_table.find_type(type_name)

@@ -45,15 +45,13 @@ class Variable():
 	
 
 class Function():
-	def __init__(self, name, type_:Type = None, **kwargs):
+	def __init__(self, name, arguments=[], return_type:Type = None):
 			self.name = name
-			self.type_ = type_
-			self.arguments = {}
-			for key, value in kwargs.items():
-				self.arguments[key] = value     #dict {name : Type}
+			self.return_type = return_type
+			self.arguments = arguments	# array: variable (order is important)
 
 	def __str__(self) -> str:
-		return f"<F-{self.name}-{self.type_}-{self.arguments}>"
+		return f"<F-{self.name}-{self.return_type}-{[a.__str__() for a in self.arguments]}>"
 	
 
 class SymbolTable():
@@ -131,7 +129,13 @@ class ParentVisitor(Visitor):
 # also remember to push into stack :)
 stack = [] 
 
+def IncDataPointer(size):
+	cur = SymbolTableVisitor.data_pointer
+	SymbolTableVisitor.data_pointer += size
+	return cur
+
 class SymbolTableVisitor(Interpreter):
+	data_pointer = 0
 	"""
 	Each Node set it's children SymbolTables. 
 	If defining a method make sure to set all children symbol tables
@@ -147,11 +151,10 @@ class SymbolTableVisitor(Interpreter):
 		
 		self.visit_children(tree)
 	
-	
+
 	def type(self, tree):
 		type_ = tree.children[0].value
 		stack.append(Type(type_))
-	
 
 	def array_type(self, tree):
 		# TODO
@@ -159,6 +162,24 @@ class SymbolTableVisitor(Interpreter):
 
 
 	def function_decl(self, tree):
+		# stack frame
+		#			------------------- 		
+		# 			| 	argument n    |			\
+		# 			| 		...		  |				=> caller
+		# 			| 	argument 1    |			/
+		#			------------------- 
+		#  $fp -> 	| saved registers |			\
+		#  $fp - 4	| 		...		  |			 \
+		#			-------------------				=> callee
+		# 			| 	local vars	  |			 /
+		# 			| 		...		  |			/
+		#  $sp ->	| 		...		  |			
+		#  $sp - 4	-------------------
+
+		# access arguments with $fp + 4, $fp + 8, ...
+
+		# TODO void
+
 		# type 
 		tree.children[0].symbol_table = tree.symbol_table
 		self.visit(tree.children[0])
@@ -172,7 +193,7 @@ class SymbolTableVisitor(Interpreter):
 
 		# TODO 
 		# not sure what to do here and what types do formals need to be 
-		# now they are list of types:string  (cause we don't yet if type exist)
+		# now they are list of types:Type (but without size)
 		sp_initial = len(stack)
 		self.visit(tree.children[2])
 		formals = []
@@ -190,34 +211,29 @@ class SymbolTableVisitor(Interpreter):
 
 		tree.symbol_table.add_func(Function(
 				name = func_name,
-				type_ = type_,
+				return_type = type_,
 				arguments = formals
 		),tree)
+
 	
 
 	def variable(self, tree):
-		
 		tree.children[0].symbol_table = tree.symbol_table
 		self.visit(tree.children[0])
 		type_ = stack.pop()
 
 		var_name = tree.children[1].value
 
-		
-
-		# TODO what to do with size and addr
-		# size = 1
-		# total_size = size * type_.size
-
-		tree.symbol_table.add_var(Variable(
+		var = Variable(
 				name=var_name,
 				type_=type_,
-				# address=DATA_POINTER,
-				# size=size
-				),tree)
+				address= IncDataPointer(4),
+				)
+
+		tree.symbol_table.add_var(var, tree)
 		
-		# We need type later (e.g. in formals of funtions)
-		stack.append(type_)
+		# We need var later (e.g. in formals of funtions)
+		stack.append(var)
 
 
 	def if_stmt(self, tree):
