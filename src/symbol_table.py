@@ -65,11 +65,22 @@ class SymbolTable():
 	symbol_tables = []
 
 	def __init__(self, parent=None):
+		self.classes = {}		# dict {name: Class}
 		self.variables = {}     # dict {name: Variable}
 		self.functions = {}     # dict {name: Function}
 		self.types = {}			# dict {name: Type}
 		self.parent = parent
 		SymbolTable.symbol_tables.append(self)
+
+
+	def find_class(self, name, tree=None, error=True):
+		if name in self.classes:
+			return self.classes[name]
+		if self.parent:
+			return self.parent.find_classes(name, tree, error)
+		if error:
+			raise SemanticError(f'Class {name} not found in this scope', tree=tree)
+		return None
 
 
 	def find_var(self, name, tree=None, error=True):
