@@ -35,16 +35,16 @@ class Type():
 
 
 class Variable():
-	def __init__(self, name= None, type_:Type = None, address = None, size = 0, contain = 1):
+	def __init__(self, name= None, type_:Type = None, address = None, size = 0):
 		self.name = name
 		self.type_ = type_
 		self.address = address
 		self.size = size
-		self.contain = contain
+
 
 
 	def __str__(self) -> str:
-		return f"<V-{self.name}-{self.type_}-{self.address}-{self.size}-{self.contain}>"
+		return f"<V-{self.name}-{self.type_}-{self.address}-{self.size}>"
 	
 
 class Function():

@@ -89,6 +89,11 @@ class Cgen(Interpreter):
 		
 		code_data_seg += "\n"
 
+		for i, a in enumerate(arrays):
+			code_data_seg += f"array_{i}: .word \"{a}\"\n"
+
+		code_data_seg += "\n"
+
 		return code_data_seg + code
 	
 	def statement_block(self, tree):
@@ -1355,21 +1360,28 @@ class Cgen(Interpreter):
 	def expr_expr(self, tree):
 		code = self.visit(tree.children[1])
 		index = stack.pop()
-		lvalue = self.visit(tree.children[0])
+		var_name = tree.children[0].value
+		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
 		if index.type_.name != 'int':
 			raise SemanticError('index type is not int', tree = tree)
-
+		#TODO how to know array size
+		#TODO how to know array type size
 		l1 = IncLabels()
 		code += f"""
-				li $t0, {lvalue.contain}
+				li $t0, {variable.contain} 
 				li $t1, 0($sp)
 				addi $t1, $t1, -1
+				la $t2, {variable.address}
 			s_iter_array_{l1}:
 				beq $t1, $zero, f_iter_array{l1}
-				
-			f_iter_array_{l1}:	
+				addi $t2, $t2, {-1*variable.size} 
+				addi $t1, $t1, -1
+			f_iter_array_{l1}:
+				lw $t2, 0($t2)
+				sw $t2, 0($sp)	
 				""".replace("\t\t\t", "")
+		return code
 
 
 	def if_stmt(self, tree):
