@@ -172,7 +172,8 @@ class SymbolTableVisitor(Interpreter):
 
 	def array_type(self, tree):
 		# TODO
-		stack.append("?")
+		mem_type = tree.children[0].value
+		stack.append(Type("array",arr_type = mem_type))
 
 
 	def function_decl(self, tree):
