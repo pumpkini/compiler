@@ -1365,21 +1365,20 @@ class Cgen(Interpreter):
 
 		if index.type_.name != 'int':
 			raise SemanticError('index type is not int', tree = tree)
-		#TODO how to know array size
-		#TODO how to know array type size
 		l1 = IncLabels()
-		code += f"""
-				li $t0, {variable.contain} 
-				li $t1, 0($sp)
-				addi $t1, $t1, -1
+		code += f""" 
 				la $t2, {variable.address}
+				la $t3, 0($t0) #array size
+				li $t1, 0($sp) #index
 			s_iter_array_{l1}:
 				beq $t1, $zero, f_iter_array{l1}
-				addi $t2, $t2, {-1*variable.size} 
+				addi $t2, $t2, -4 
 				addi $t1, $t1, -1
 			f_iter_array_{l1}:
 				lw $t2, 0($t2)
 				sw $t2, 0($sp)	
+				
+			
 				""".replace("\t\t\t", "")
 		return code
 
@@ -1571,7 +1570,7 @@ class Cgen(Interpreter):
 
 		if size < 0 or type(size) != "int":
 			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
-
+		l1 = IncLabels()
 		code += f"""
 				### array
 
@@ -1595,12 +1594,16 @@ class Cgen(Interpreter):
 
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
+				
+				j new_array_end_{l1}
 
-			array_size_err_: 
+			array_size_err_{l1}: 
 				la $a0 , errorMsg
 				li $v0 , 4
 				syscall
-				
+			
+			new_array_end_{l1}:
+			
 				""".replace("\t\t\t","")
 		# TODO
 		
