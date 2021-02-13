@@ -1357,7 +1357,7 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
 
-	def expr_expr(self, tree):
+	def l_value_array(self, tree):
 		code = self.visit(tree.children[1])
 		index = stack.pop()
 		var_name = tree.children[0].value
