@@ -109,10 +109,11 @@ print_stmt: PRINT "(" actuals ")" ";"
     | DTOI "(" expr ")" -> dtoi
     | ITOB "(" expr ")" -> itob
     | BTOI "(" expr ")" -> btoi
-    | THIS
+    | THIS -> l_value_ident
 
 
-l_value : IDENT -> ident 
+
+l_value : IDENT -> l_value_ident 
     | expr7 "." IDENT -> l_value_class_field
     | expr7 "[" expr "]" -> l_value_array
 

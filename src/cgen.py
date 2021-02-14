@@ -21,6 +21,8 @@ stack_of_functions = []
 
 class_init_codes = ''
 
+from_assign_flag = False
+
 def IncLabels():
 	Cgen.labels+=1
 	return Cgen.labels
@@ -40,7 +42,10 @@ class Cgen(Interpreter):
 		code += f"""
 		main:
 			{class_init_codes}
+
 			jal func_main
+
+			# exit
 			li $v0, 10
 			syscall
 
@@ -312,7 +317,6 @@ class Cgen(Interpreter):
 		arguments_number = len(stack) - stack_size_initial
 		
 		if arguments_number != len(function.formals):
-			print(arguments_number ,len(function.formals))
 			raise SemanticError(f"function '{function_name}' arguments number are not matched", tree=tree)
 		
 		i = arguments_number - 1
@@ -325,7 +329,7 @@ class Cgen(Interpreter):
 		
 		# load function address from vtable and jump
 		# object is in $sp + (argument_numbers-1) * 4  
-		print(arguments_number)
+
 		code += f"""
 			lw $t0, {(arguments_number - 1) * 4}($sp)	# t0: object
 
@@ -504,9 +508,69 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=type_))
 		return code
 
+	def this(self, tree):
+		print("hello")
+
 
 	def l_value_class_field(self, tree):
-		pass
+		global from_assign_flag 
+
+		code = ''
+		store_address_code = ''
+		
+		if from_assign_flag:
+			store_address_code = """
+			addi $sp, $sp, -4
+			sw $t1, 0($sp)	# store address in stack
+			"""
+		
+		from_assign_flag = False
+
+		expr_code = self.visit(tree.children[0])
+		variable = stack.pop()
+
+		# from_assign_flag = old_from_assign_flag 
+
+		class_ = variable.type_.class_ref
+		if not class_:
+			raise SemanticError("dot(.) can only used with classes", tree=tree)
+
+		
+		field_name = tree.children[1].value
+		class_var, index = class_.get_var_and_index(field_name)
+		
+		
+		
+
+		code = f"""
+		# l_value_class_field
+		
+		{expr_code}
+				
+		lw $t1, 0($sp) 	# t0: address of object
+		addi $sp, $sp, 4
+  
+		add $t1, $t1, {(index + 1) * 4} # t1: field
+
+		{store_address_code}
+
+		lw $t2, 0($t1)
+		addi $sp, $sp, -4
+		sw $t2, 0($sp) 	# store value in stack
+
+		""".replace("\t\t", "\t")
+
+		# TODO we cant have address here
+		# check if any place use address from here 
+		# and change it 
+
+
+		this_object_var = Variable(
+			type_ = class_var.type_
+		)
+
+		stack.append(this_object_var)
+		return code
 
 
 
@@ -521,25 +585,42 @@ class Cgen(Interpreter):
 		return ""	
 
 	def expr_assign(self, tree):
-		global stack
+		global from_assign_flag
 
 		code = ''
 		
-		self.visit(tree.children[0])
+		from_assign_flag = True
+		code += self.visit(tree.children[0])
 		lvalue_var = stack.pop()
+		# from_assign_flag = False
 
 		code += self.visit(tree.children[1])
 		expr_var = stack.pop()
 		
 		if lvalue_var.type_.name != expr_var.type_.name:
 			raise SemanticError(f"lvalue type '{lvalue_var.type_.name}' != expr type '{expr_var.type_.name}' in 'expr_assign'", tree=tree)
+	
+	
+		# what stack state should look like:
+
+		#		| 		...  	 	|
+		#		|  lvalue_var.addr 	| (value must be valid)
+		#		|  lvalue_var.data	|
+		# 		|  	expr_var.addr 	| (value may not be valied)
+		# sp -> |   expr_var.data 	|
+		# 		 --------------------
 		
+
 		code += f"""
 				### store
 				lw $t0, 0($sp)
 				addi $sp, $sp, 4
-				sw $t0, {lvalue_var.address}($gp) 	
-				""".replace("\t\t\t\t","\t")
+				lw $t1, 4($sp) # load address from stack
+				addi $sp, $sp, 8
+				sw $t0, 0($t1)
+
+				""".replace("\t\t\t\t\t","\t")
+
 		# if lvalue_var.type_.name == 'int' or\
 		# 	 lvalue_var.type_.name == 'bool':
 		# 	code += f"""
@@ -578,10 +659,11 @@ class Cgen(Interpreter):
 		return code
 
 
-	def ident(self, tree):
+	def l_value_ident(self, tree):
+		global from_assign_flag
 		var_name = tree.children[0].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
-		
+		print("ident ", variable, "assign flag", from_assign_flag)
 		stack.append(variable)
 
 		# if variable.type_.name == "double": # TODO do we need this aslan?
@@ -593,13 +675,25 @@ class Cgen(Interpreter):
 		# 			""".replace("\t\t\t\t", "")
 		# else:
 		# 	
-		code = f"""
-			### ident
-			lw $t0, {variable.address}($gp)
-			addi $sp, $sp, -4
-			sw $t0, 0($sp)
-			""".replace("\t\t\t", "\t")
-		
+		if from_assign_flag:
+			# if this l_value called from assign we need to store address. maybe, maybe not :(
+			code = f"""
+				### ident
+				addi $t0, $gp, {variable.address}
+				sw $t0, -4($sp)
+				lw $t0, {variable.address}($gp)
+				sw $t0, -8($sp)
+				addi $sp, $sp, -8
+				""".replace("\t\t\t", "\t")
+		else:
+			code = f"""
+				### ident
+				lw $t0, {variable.address}($gp)
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t", "\t")
+		from_assign_flag = False
+
 		return code
 
 
