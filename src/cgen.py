@@ -20,6 +20,7 @@ stack_of_for_and_while_labels = [] # (label_for_continue, label_for_break)
 stack_of_functions = [] 
 
 class_init_codes = ''
+variable_inits_code = ''
 
 class_stack = []
 
@@ -44,6 +45,7 @@ class Cgen(Interpreter):
 		code += f"""
 		main:
 			{class_init_codes}
+			{variable_inits_code}
 
 			jal func_main
 
@@ -135,18 +137,18 @@ class Cgen(Interpreter):
 		return code
 	
 	# def	decl(self, tree):
-	# 	global class_init_codes
+	# 	global global_variable_decl
 	# 	code = ''
 	# 	for decl in tree.children:
 	# 		if decl.data == 'function_decl':
 	# 			code += self.visit(decl)
+
 	# 		elif decl.data == 'variable_decl':
-	# 			# TODO
-	# 			pass
+	# 			global_variable_decl += self.visit(decl)
+
 	# 		elif decl.data == 'class_decl':
 	# 			code += self.visit(decl)
-	# 			# TODO
-	# 			pass
+
 	# 		elif decl.data == 'interface_decl':
 	# 			# code += self.visit(decl
 	# 			pass
@@ -638,7 +640,11 @@ class Cgen(Interpreter):
 		variable = stack.pop()
 
 		# from_assign_flag = old_from_assign_flag 
+		new_type = tree.symbol_table.find_type(variable.type_.name, error=False)
+		if new_type:
+			variable.type_ = new_type
 		class_ = variable.type_.class_ref
+
 		if not class_:
 			raise SemanticError("dot(.) can only used with classes", tree=tree)
 
@@ -684,21 +690,23 @@ class Cgen(Interpreter):
 
 
 	def variable(self, tree):
+		global variable_inits_code
+
 		type_ = self.visit(tree.children[0])
 		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
-	
+		print("var", type_)
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
 
-		code = f"""
+		variable_inits_code += f"""
 		# variable init
 		li $t0, 0
 		sw $t0, {variable.address}($gp)
 		""".replace("\t\t", "\t")
 
-		return code
+		return ''
 
 	def expr_assign(self, tree):
 		global from_assign_flag
@@ -834,7 +842,7 @@ class Cgen(Interpreter):
 
 		
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
-		
+		print(variable)
 		stack.append(variable)
 
 
