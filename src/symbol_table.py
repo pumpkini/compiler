@@ -76,6 +76,15 @@ class Class():
 			raise SemanticError(f'Function {name} not found in class {self.name}', tree=tree)
 		return (None, None)
 
+	def get_var_and_index(self, name, error=True, tree=None):
+		if name in self.member_data:
+			index = list(self.member_data.keys()).index(name)
+			return (self.member_data[name], index)
+
+		if error:
+			raise SemanticError(f'Function {name} not found in class {self.name}', tree=tree)
+		return (None, None)
+
 	def __str__(self) -> str:
 		return f"<C: {self.name}\
 			\n\tdata: {[v for v in self.member_data]}\
