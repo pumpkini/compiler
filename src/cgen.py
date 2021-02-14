@@ -369,7 +369,7 @@ class Cgen(Interpreter):
 		
 		class_ = type_.class_ref
 		if not class_:
-			raise SemanticError("New must be userd with class name", tree=tree)
+			raise SemanticError("New must be used with class name", tree=tree)
 
 		
 		# allocate memory for object
