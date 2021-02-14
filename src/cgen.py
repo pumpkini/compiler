@@ -1794,7 +1794,7 @@ class Cgen(Interpreter):
 		mem_type_name = self.visit(tree.children[1])
 		mem_type = tree.symbol_table.find_type(Type(mem_type_name))
 		type_ = Type("array",arr_type = mem_type)
-
+		print("#####I'm in new array")
 		if size < 0 or type(size) != "int":
 			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
 		l1 = IncLabels()
