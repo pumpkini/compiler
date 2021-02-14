@@ -1,4 +1,5 @@
 import logging
+from typing import get_type_hints
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
 from decimal import Decimal, InvalidOperation
@@ -18,22 +19,34 @@ stack_of_for_and_while_labels = [] # (label_for_continue, label_for_break)
 # usage in return
 stack_of_functions = [] 
 
+class_init_codes = ''
+
 def IncLabels():
 	Cgen.labels+=1
 	return Cgen.labels
-
-
 
 class Cgen(Interpreter):
 	labels = 0
 
 
 	def program(self, tree):
-		
+		global class_init_codes
+
 		code = "\n.text"
 
 		code += '\n'.join(self.visit_children(tree))
+
+		# add main 
+		code += f"""
+		main:
+			{class_init_codes}
+			jal func_main
+			li $v0, 10
+			syscall
+
+		""".replace("\t\t","")
 	
+		# add other functions
 		code += """
 
 		### Function: Print_bool(a0: boolean_value)
@@ -104,11 +117,21 @@ class Cgen(Interpreter):
 		return code
 	
 	# def	decl(self, tree):
-
+	# 	global class_init_codes
 	# 	code = ''
 	# 	for decl in tree.children:
 	# 		if decl.data == 'function_decl':
 	# 			code += self.visit(decl)
+	# 		elif decl.data == 'variable_decl':
+	# 			# TODO
+	# 			pass
+	# 		elif decl.data == 'class_decl':
+	# 			code += self.visit(decl)
+	# 			# TODO
+	# 			pass
+	# 		elif decl.data == 'interface_decl':
+	# 			# code += self.visit(decl
+	# 			pass
 		
 	# 	return code
 	
@@ -215,8 +238,6 @@ class Cgen(Interpreter):
 		return code
 	
 	def call(self, tree):
-		# TODO add member function calls
-
 		function_name = tree.children[0].value
 		function = tree.symbol_table.find_func(function_name, tree=tree)
 
@@ -238,6 +259,7 @@ class Cgen(Interpreter):
 			i -= 1
 		
 		code = f"""
+			# function call
 			{actuals_code}
 			jal	{function.label}
 		
@@ -253,9 +275,85 @@ class Cgen(Interpreter):
 			addi $sp, $sp, -4
 			"""	
 		
+		# TODO do we need to add to mips stack too if return type is void?
 		stack.append(Variable(type_=function.return_type))
 		
 		return code
+	
+	
+	def method_call(self, tree):
+		expr_code = self.visit(tree.children[0])
+		variable = stack.pop()
+		
+		class_ = variable.type_.class_ref
+		
+		if not class_:
+			raise SemanticError("Method call only allowed on objects", tree=tree)
+
+		function_name = tree.children[1].value
+		function, func_index = class_.get_func_and_index(function_name, tree=tree)
+
+		stack_size_initial = len(stack)
+
+
+		# add 'this' to stack
+		# no need to add anything 'this' is already in stack haha
+		code = f"""
+			# method call
+			{expr_code}
+		""".replace("\t\t\t", "\t")
+		
+		stack.append(variable)
+
+		# add other arguments
+		actuals_code = self.visit(tree.children[2])
+		code += actuals_code
+
+		arguments_number = len(stack) - stack_size_initial
+		
+		if arguments_number != len(function.formals):
+			print(arguments_number ,len(function.formals))
+			raise SemanticError(f"function '{function_name}' arguments number are not matched", tree=tree)
+		
+		i = arguments_number - 1
+		while len(stack) > stack_size_initial:
+			formal = function.formals[i]
+			arg = stack.pop()
+			if arg.type_.name != formal.type_.name:
+				raise SemanticError(f"function '{function_name}' arguments not matched with formals", tree=tree)
+			i -= 1
+		
+		# load function address from vtable and jump
+		# object is in $sp + (argument_numbers-1) * 4  
+		print(arguments_number)
+		code += f"""
+			lw $t0, {(arguments_number - 1) * 4}($sp)	# t0: object
+
+			lw $t1, 0($t0)	# t1: vtable (I hope so)
+
+			addi $t2, $t1, {func_index * 4}	 # t2: function address or whatever
+
+			lw $t3, 0($t2)	# t3: function label address or whatever
+
+			jalr $t3
+		
+			addi $sp, $sp, {arguments_number * 4}
+		""".replace("\t\t\t", "\t")
+
+		# return type != void
+		# return value in v0
+
+		if function.return_type:
+			code += f"""
+			sw $v0, -4($sp)
+			addi $sp, $sp, -4
+			"""	
+		
+		# TODO do we need to add to mips stack too if return type is void?
+		stack.append(Variable(type_=function.return_type))
+		
+		return code
+
 
 
 	def return_stmt(self, tree):
@@ -291,6 +389,7 @@ class Cgen(Interpreter):
 
 
 	def class_decl(self, tree): 
+		global class_init_codes
 		# CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT ("," IDENT)*)?  "{" field* "}"
 		
 		# TODO extends
@@ -322,8 +421,8 @@ class Cgen(Interpreter):
 
 		vtable_size = len(class_.member_functions)
 		
-		code += f"""
-		# class vtable
+		class_init_codes += f"""
+		# class {class_.name} vtable init
 		
 		li $v0, 9
 		li $a0, {vtable_size * 4}
@@ -334,16 +433,17 @@ class Cgen(Interpreter):
 
 		""".replace("\t\t", "\t")
 
+		ind = 0
 		for f in class_.member_functions.values():
 			func_label = f.label
 			
 			# store function address in vtable
-
-			code += f"""
+			class_init_codes += f"""
 			la $t0, {func_label}
-			sw $t0, 0($s0)
-			addi $s0, $s0, 4
+			sw $t0, {ind}($s0)
 			""".replace("\t\t", "")
+
+			ind += 4
 		
 		return code
 
@@ -391,7 +491,6 @@ class Cgen(Interpreter):
 		li $a0, {object_size * 4}
 		syscall
 
-		sw $v0, {class_.address}($gp)
 		move $s0, $v0		# s0: address of object 
 
 		lw $t0, {class_.address}($gp) 	# t0: address of vtable
@@ -406,14 +505,19 @@ class Cgen(Interpreter):
 		return code
 
 
+	def l_value_class_field(self, tree):
+		pass
+
+
+
 	def variable(self, tree):
 		type_ = self.visit(tree.children[0])
 		var_name = tree.children[1].value		
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
-		# old type doesnt have size so change it to Type (TODO maybe this should change)
+		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
-	
+
 		return ""	
 
 	def expr_assign(self, tree):
@@ -430,32 +534,38 @@ class Cgen(Interpreter):
 		if lvalue_var.type_.name != expr_var.type_.name:
 			raise SemanticError(f"lvalue type '{lvalue_var.type_.name}' != expr type '{expr_var.type_.name}' in 'expr_assign'", tree=tree)
 		
-		if lvalue_var.type_.name == 'int' or\
-			 lvalue_var.type_.name == 'bool':
-			code += f"""
+		code += f"""
 				### store
 				lw $t0, 0($sp)
 				addi $sp, $sp, 4
 				sw $t0, {lvalue_var.address}($gp) 	
 				""".replace("\t\t\t\t","\t")
+		# if lvalue_var.type_.name == 'int' or\
+		# 	 lvalue_var.type_.name == 'bool':
+		# 	code += f"""
+		# 		### store
+		# 		lw $t0, 0($sp)
+		# 		addi $sp, $sp, 4
+		# 		sw $t0, {lvalue_var.address}($gp) 	
+		# 		""".replace("\t\t\t\t","\t")
 
-		elif lvalue_var.type_.name == 'double':
-			code += f"""
-				### store
-				l.s $f2, 0($sp)
-				addi $sp, $sp, 4
-				s.s $f2, {lvalue_var.address}($gp) 	
-				""".replace("\t\t\t\t","\t")
+		# elif lvalue_var.type_.name == 'double':
+		# 	code += f"""
+		# 		### store
+		# 		l.s $f2, 0($sp)
+		# 		addi $sp, $sp, 4
+		# 		s.s $f2, {lvalue_var.address}($gp) 	
+		# 		""".replace("\t\t\t\t","\t")
 
-		elif lvalue_var.type_.name == 'string':
-			code += f"""
-				### store
-				lw $t0, 0($sp)
-				addi $sp, $sp, 4
-				sw $t0, {lvalue_var.address}($gp) 	
-				""".replace("\t\t\t\t","\t")
+		# elif lvalue_var.type_.name == 'string':
+		# 	code += f"""
+		# 		### store
+		# 		lw $t0, 0($sp)
+		# 		addi $sp, $sp, 4
+		# 		sw $t0, {lvalue_var.address}($gp) 	
+		# 		""".replace("\t\t\t\t","\t")
 			
-			lvalue_var.size = expr_var.size
+		# 	lvalue_var.size = expr_var.size
 
 		# assume assignment expression push a true in stack
 		code += f"""
@@ -474,20 +584,21 @@ class Cgen(Interpreter):
 		
 		stack.append(variable)
 
-		if variable.type_.name == "double": # TODO do we need this aslan?
-			code = f"""
-					### ident
-					l.s $f2, {variable.address}($gp)
-					addi $sp, $sp, -4
-					s.s $f2, 0($sp)
-					""".replace("\t\t\t\t", "")
-		else:
-			code = f"""
-					### ident
-					lw $t0, {variable.address}($gp)
-					addi $sp, $sp, -4
-					sw $t0, 0($sp)
-					""".replace("\t\t\t\t", "")
+		# if variable.type_.name == "double": # TODO do we need this aslan?
+		# 	code = f"""
+		# 			### ident
+		# 			l.s $f2, {variable.address}($gp)
+		# 			addi $sp, $sp, -4
+		# 			s.s $f2, 0($sp)
+		# 			""".replace("\t\t\t\t", "")
+		# else:
+		# 	
+		code = f"""
+			### ident
+			lw $t0, {variable.address}($gp)
+			addi $sp, $sp, -4
+			sw $t0, 0($sp)
+			""".replace("\t\t\t", "\t")
 		
 		return code
 

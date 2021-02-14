@@ -11,7 +11,7 @@ class Type():
 		self.class_ref = class_ref
 
 	def __str__(self) -> str:
-		return f"<T-{self.name}-{self.size}>"
+		return f"<T-{self.name}-{self.size}-arr:{self.arr_type}-cls:{None if not self.class_ref else self.class_ref.name}>"
 
 
 class Variable():
@@ -36,10 +36,12 @@ class Function():
 		self.change_name(name, prefix_label)
 		
 	def change_name(self, name, prefix_label=''):
-		if name != "main":
-			self.label = prefix_label + "func_" + name
-		else:
-			self.label = prefix_label + name
+		# if name != "main":
+		# 	self.label = prefix_label + "func_" + name
+		# else:
+		# 	self.label = prefix_label + name
+
+		self.label = prefix_label + "func_" + name
 
 
 	def __str__(self) -> str:
@@ -65,8 +67,17 @@ class Class():
 		self.fields = {**member_data, **member_functions}
 
 
+	def get_func_and_index(self, name, error=True, tree=None):
+		if name in self.member_functions:
+			index = list(self.member_functions.keys()).index(name)
+			return (self.member_functions[name], index)
+
+		if error:
+			raise SemanticError(f'Function {name} not found in class {self.name}', tree=tree)
+		return (None, None)
+
 	def __str__(self) -> str:
-		return f"<C: {self.name} \
+		return f"<C: {self.name}\
 			\n\tdata: {[v for v in self.member_data]}\
 			\n\tmethods: {[v for v in self.member_functions]}>"
 			# \n\tdata: {[v.__str__() for v in self.member_data.values()]}\
@@ -303,12 +314,14 @@ class SymbolTableVisitor(Interpreter):
 		type_ = stack.pop()
 
 		var_name = tree.children[1].value
-
+		
 		var = Variable(
 				name=var_name,
 				type_=type_,
 				address= IncDataPointer(4),
 				)
+
+		print("var", var)
 
 		tree.symbol_table.add_var(var, tree)
 		
