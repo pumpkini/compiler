@@ -883,21 +883,17 @@ class Cgen(Interpreter):
 
 	# type return Type
 	def type(self, tree):
-
 		type_name = tree.children[0].value
+		print("type", type_name)
 		type_ = tree.symbol_table.find_type(type_name, tree=tree)
-
-		if not type_:
-			raise SemanticError("Type not in scope",tree=tree)
 		return type_
 
 	def array_type(self, tree):
-		type_ = tree.symbol_table.find_type("array", tree= tree.children[0])
-
-		if not type_:
-			raise SemanticError("Array Type not in scope", tree=tree.children[0])
+		arr_type = tree.children[0]
+		type_ = Type(name="array", arr_type=arr_type)
 
 		return type_
+
 
 	def add(self, tree):
 		code = ''
@@ -1894,48 +1890,40 @@ class Cgen(Interpreter):
 
 
 	def new_array(self, tree):
-		code = self.visit(tree.children[0])
-		size = stack.pop() #there is variable in it? :O
-		mem_type_name = self.visit(tree.children[1])
-		mem_type = tree.symbol_table.find_type(Type(mem_type_name))
+		expr_code = self.visit(tree.children[0])
+		expr_variabele = stack.pop() #there is variable in it? :O
+		
+		mem_type = self.visit(tree.children[1])
 		type_ = Type("array",arr_type = mem_type)
+		
 		print("#####I'm in new array")
-		if size < 0 or type(size) != "int":
-			raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
+		# if size < 0 or type(size) != "int":
+		# 	raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
+
 		l1 = IncLabels()
-		code += f"""
+		code = f"""
 				### array
+				{expr_code}
 
-				lw $t0, 0($sp)
+				lw $t0, 0($sp)	# array size
 
+				ble $t0, $zero , runtimeError
+
+				add $t0, $t0, 1  # add one more place for size
+				
+				mul $t0, $t0, 4	# array size in bytes
+
+				li $v0 , 9
 				la $a0 , $t0
-				li $v0 , 51
-				syscall
-
-				bneq $a1,  0, array_size_err_
-
-				ble $t0, 0 , array_size_err_
-
-				li $v0, 9		# syscall for allocate byte
-				li $a0, {(size + 1) * 4}
 				syscall
 
 				move $s0, $v0		# s0: address of array
 
-				sw {size}, 0($s0)
+				sw $t0, 0($s0)	# store size in first word
 
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
 				
-				j new_array_end_{l1}
-
-			array_size_err_{l1}: 
-				la $a0 , errorMsg
-				li $v0 , 4
-				syscall
-			
-			new_array_end_{l1}:
-			
 				""".replace("\t\t\t","")
 		# TODO
 		

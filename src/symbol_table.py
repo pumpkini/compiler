@@ -128,12 +128,10 @@ class SymbolTable():
 		return None
 
 	def find_type(self, name, tree=None, error=True):
-		print("FIND TYPE")
+		print("find type", name)
 		if name in self.types:
-			print("child, ", name)
 			return self.types[name]
 		if self.parent:
-			print("par, ", name)
 			return self.parent.find_type(name, tree, error)
 
 		if error:
@@ -330,12 +328,13 @@ class SymbolTableVisitor(Interpreter):
 		# We need var later (e.g. in formals of funtions)
 		stack.append(var)
 
-	def array_type(self, tree):
-		tree.children[0].symbol_table = tree.symbol_table
-		self.visit(tree.children[0])
-		mem_type = stack.pop().name
-		print(mem_type)
-		stack.append(Type("array",arr_type = mem_type))
+
+	# def array_type(self, tree):
+	# 	tree.children[0].symbol_table = tree.symbol_table
+	# 	self.visit(tree.children[0])
+	# 	mem_type = stack.pop().name
+	# 	print(mem_type)
+	# 	stack.append(Type("array",arr_type = mem_type))
 
 
 	def if_stmt(self, tree):
