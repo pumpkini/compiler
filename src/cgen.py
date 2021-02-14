@@ -512,7 +512,7 @@ class Cgen(Interpreter):
 
 	def variable(self, tree):
 		type_ = self.visit(tree.children[0])
-		var_name = tree.children[1].value		
+		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
 		# old type only have name  TODO keep eye on this
