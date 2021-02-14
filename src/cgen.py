@@ -636,45 +636,12 @@ class Cgen(Interpreter):
 		code += f"""
 				### store
 
-
-li $v0, 1		# syscall for print integer 
-	lw $a0, 0($sp)
-	syscall
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
-li $v0, 1		# syscall for print integer 
-	lw $a0, 4($sp)
-	syscall
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
-  li $v0, 1		# syscall for print integer 
-	lw $a0, 8($sp)
-	syscall
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
-
 				lw $t0, 0($sp)
 				addi $sp, $sp, 4
 				lw $t1, 4($sp) # load address from stack
 				addi $sp, $sp, 8
 				sw $t0, 0($t1)
-
-li $v0, 1		# syscall for print integer 
-	move $a0, $t0
-	syscall
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
-  li $v0, 1		# syscall for print integer 
-	move $a0, $t1
-	syscall
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
-				""".replace("\t\t\t\t\t","\t")
+		""".replace("\t\t\t\t\t","\t")
 
 		# if lvalue_var.type_.name == 'int' or\
 		# 	 lvalue_var.type_.name == 'bool':
@@ -729,16 +696,6 @@ li $v0, 1		# syscall for print integer
 				addi $t0, $gp, {variable.address}
 				sw $t0, -4($sp)
 
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
-	li $v0, 1		# syscall for print integer 
-	move $a0, $t0
-	syscall
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
-			
 				lw $t0, {variable.address}($gp)
 				sw $t0, -8($sp)
 				addi $sp, $sp, -8
@@ -2013,14 +1970,6 @@ li $v0, 1		# syscall for print integer
 				syscall
 
 				move $s0, $v0		# s0: address of array
-
-
-li $v0, 1		# syscall for print integer 
-	move $a0, $s0
-	syscall
-  la $a0, newLineStr
-  li $v0, 4	# syscall for print string
-  syscall
 
 				sw $t0, 0($s0)	# store size in first word
 
