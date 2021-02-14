@@ -4,34 +4,14 @@ from lark import Tree
 
 
 class Type():
-	# types = {}
-	# types_index = {}
-	def __init__(self, name, size=None, arr_type= None):
+	def __init__(self, name, size=None, arr_type=None, class_ref=None):
 		self.name = name
 		self.size = size
 		self.arr_type = arr_type
-		# self.index = len(Type.types)
-		# Type.types[name] = self
-		# Type.types_index[self.index] = name
+		self.class_ref = class_ref
 
 	def __str__(self) -> str:
 		return f"<T-{self.name}-{self.size}>"
-	# @classmethod
-	# def get_type_by_name(cls, name):
-	# 	if name in cls.types:
-	# 		return cls.types[name]
-
-	# 	return None # Type not found
-
-	# @classmethod
-	# def get_type_by_index(cls, index):
-	# 	if index not in cls.types_index:
-	# 		return None # Type not found
-		
-	# 	name = cls.types_index[index]
-		
-	# 	return cls.get_type_by_name(name)
-
 
 
 class Variable():
@@ -48,18 +28,44 @@ class Variable():
 	
 
 class Function():
-	def __init__(self, name, formals=[], return_type:Type = None):
-			self.name = name
-			self.return_type = return_type
-			self.formals = formals	# array: variable (order is important)
-			if name != "main":
-				self.label = "func_" + name
-			else:
-				self.label = name
+	def __init__(self, name, formals=[], return_type:Type = None, prefix_label = ''):
+		self.name = name
+		self.return_type = return_type
+		self.formals = formals	# array: variable (order is important)
+		self.label = name
+		self.change_name(name, prefix_label)
+		
+	def change_name(self, name, prefix_label=''):
+		if name != "main":
+			self.label = prefix_label + "func_" + name
+		else:
+			self.label = prefix_label + name
+
 
 	def __str__(self) -> str:
 		return f"<F-{self.name}-{self.return_type}-{[a.__str__() for a in self.formals]}>"
 	
+
+class Class():
+	def __init__(self, name, member_data= {}, member_functions={}):
+		self.name = name
+		self.member_data = {}
+		self.member_functions = {}
+		self.fields = {}
+		self.set_fields(member_data, member_functions)
+	
+	def set_fields(self, member_data, member_functions):
+		self.member_data = member_data
+		self.member_functions = member_functions
+		
+		if member_data.keys() & member_functions.keys():
+			raise SemanticError(f"class '{self.name}' members must have distinct names")
+		
+		self.fields = {**member_data, **member_functions}
+
+
+
+class_stack = []
 
 class SymbolTable():
 	symbol_tables = []
@@ -114,12 +120,6 @@ class SymbolTable():
 		return None
 
 
-	def get_index(self):
-		return SymbolTable.symbol_tables.index(self)
-
-	def __str__(self) -> str:
-		return f"SYMBOLYABLE: {self.get_index()} PARENT: {self.parent.get_index() if self.parent else -1}\n\tVARIABLES: {[v.__str__() for v in self.variables.values()]}\n\tFUNCTIONS: {[f.__str__() for f in self.functions]}"
-
 	def add_var(self, var:Variable, tree=None):
 		if self.find_var(var.name, error=False):
 			raise SemanticError('Variable already exist in scope', tree=tree)
@@ -137,6 +137,24 @@ class SymbolTable():
 			raise SemanticError('Type already  exist in scope', tree=tree)
 
 		self.types[type_.name] = type_
+
+	
+	# TODO do we need this?
+	def add_class(self, class_:Class, tree=None):
+		if self.find_var(class_.name, error=False):
+			raise SemanticError('Class already exist in scope', tree=tree)
+		
+		self.classes[class_.name] = class_
+
+
+	def get_index(self):
+		return SymbolTable.symbol_tables.index(self)
+
+	def __str__(self) -> str:
+		return f"SYMBOLYABLE: {self.get_index()} \
+			 PARENT: {self.parent.get_index() if self.parent else -1}\
+				 \n\tVARIABLES: {[v.__str__() for v in self.variables.values()]}\
+				 \n\tFUNCTIONS: {[f.__str__() for f in self.functions.values()]}"
 
 
 
@@ -204,6 +222,13 @@ class SymbolTableVisitor(Interpreter):
 
 		# access arguments with $fp + 4, $fp + 8, ...
 
+
+		# check if function is a member function
+		function_class = None
+		if len(class_stack) > 0:
+			function_class = class_stack[-1]
+
+
 		# type 
 		type_ = Type("void") # void
 
@@ -230,16 +255,33 @@ class SymbolTableVisitor(Interpreter):
 			formals.append(f)
 		
 		formals = formals[::-1]
+
+		# Add this to formals and symbol table
+		if function_class:
+			this = Variable(name="this",
+				type_=Type(
+					name=function_class.name,
+					class_ref=function_class
+				))
+			formals = [this, *formals]
+			formals_symbol_table.add_var(this)
 		
+
 		# set body scope
 		body_symbol_table = SymbolTable(parent=formals_symbol_table)
 		tree.children[3].symbol_table = body_symbol_table
 		self.visit(tree.children[3])
 
+		# change function label in mips code to not get confused with other functions with same name
+		prefix_label = ''
+		if function_class:
+			prefix_label = "class_" + function_class.name + "_"
+
 		tree.symbol_table.add_func(Function(
 				name = func_name,
 				return_type = type_,
-				formals = formals
+				formals = formals,
+				prefix_label=prefix_label
 		),tree)
 
 	
@@ -355,4 +397,50 @@ class SymbolTableVisitor(Interpreter):
 		body_symbol_table = SymbolTable(parent=expr_symbol_table)
 		tree.children[body_num].symbol_table = body_symbol_table
 		self.visit(tree.children[body_num])
+
+
+	def class_decl(self, tree):
+		# CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT ("," IDENT)*)?  "{" field* "}"
+		
+
+		# TODO extends
+		# TODO implements
+		# TODO access modes
+
+		# name
+		class_name = tree.children[1].value
+
+		class_ = Class(class_name)
+
+		type_ = Type(
+			name=class_name,
+			class_ref=class_
+		)
+
+		tree.symbol_table.add_type(type_)
+		
+		# fields
+		class_symbol_table = SymbolTable(parent=tree.symbol_table)
+
+		class_stack.append(class_)
+		
+		for subtree in tree.children[::-1]:
+			if isinstance(subtree, Tree) and subtree.data == 'field':
+				subtree.symbol_table = class_symbol_table
+				initial_stack_len = len(stack)
+				self.visit(subtree)
+				while initial_stack_len < len(stack):
+					stack.pop()
+			else:
+				break
+
+		class_stack.pop()
+
+		class_.set_fields(
+			member_data=class_symbol_table.variables,
+			member_functions=class_symbol_table.functions
+		)
+
+		print(class_symbol_table)
+		
 

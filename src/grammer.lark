@@ -2,7 +2,7 @@
 
 program: decl+
 
-decl: variable_decl
+?decl: variable_decl
     | function_decl
     | class_decl
     | interface_decl
@@ -26,8 +26,8 @@ formals: variable ("," variable)*
 
 class_decl: CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT ("," IDENT)*)?  "{" field* "}"
 
-field: access_mode variable_decl -> field_var
-    | access_mode function_decl -> field_func
+field: access_mode variable_decl 
+    | access_mode function_decl
 
 access_mode: PRIVATE
     | PROTECTED
