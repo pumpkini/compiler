@@ -257,8 +257,86 @@ class Cgen(Interpreter):
 	
 	def call(self, tree):
 		function_name = tree.children[0].value
-		function = tree.symbol_table.find_func(function_name, tree=tree)
 
+		class_ = None
+		if len(class_stack) > 0:
+			class_ = class_stack[-1]
+
+		function = tree.symbol_table.find_func(function_name, tree=tree, error=False, depth_one=True)
+
+
+		# check if function is from class (but with out 'this')
+		if not function and class_:
+			function, func_index = class_.get_func_and_index(function_name, error=False)
+			
+			if function: # use 'this'
+				this_variable = tree.symbol_table.find_var('this', tree=tree,)
+
+				stack_size_initial = len(stack)
+
+				code = f"""
+					# method call
+					# this
+					lw $t0, {this_variable.address}($gp)
+					addi $sp, $sp, -4
+					sw $t0, 0($sp)
+				""".replace("\t\t\t", "\t")
+				
+				stack.append(this_variable)
+
+				# add other arguments
+				actuals_code = self.visit(tree.children[1])
+				code += actuals_code
+
+				arguments_number = len(stack) - stack_size_initial
+				if arguments_number != len(function.formals):
+					raise SemanticError(f"function '{function_name}' arguments number are not matched", tree=tree)
+				
+				i = arguments_number - 1
+				while len(stack) > stack_size_initial:
+					formal = function.formals[i]
+					arg = stack.pop()
+					if arg.type_.name != formal.type_.name:
+						raise SemanticError(f"function '{function_name}' arguments not matched with formals", tree=tree)
+					i -= 1
+				
+				# load function address from vtable and jump
+				# object is in $sp + (argument_numbers-1) * 4  
+
+				code += f"""
+					lw $t0, {(arguments_number - 1) * 4}($sp)	# t0: object
+					
+					beq $t0, $zero, runtimeError
+
+					lw $t1, 0($t0)	# t1: vtable (I hope so)
+
+					addi $t2, $t1, {func_index * 4}	 # t2: function address or whatever
+
+					lw $t3, 0($t2)	# t3: function label address or whatever
+
+					jalr $t3
+				
+					addi $sp, $sp, {arguments_number * 4}
+				""".replace("\t\t\t", "\t")
+
+				# return type != void
+				# return value in v0
+
+				if function.return_type:
+					code += f"""
+					sw $v0, -4($sp)
+					addi $sp, $sp, -4
+					"""	
+				
+				# TODO do we need to add to mips stack too if return type is void?
+				stack.append(Variable(type_=function.return_type))
+				
+				return code
+
+		
+
+		
+		function = tree.symbol_table.find_func(function_name, tree=tree)
 
 		stack_size_initial = len(stack)
 		actuals_code = self.visit(tree.children[1])
@@ -2118,7 +2196,7 @@ if __name__ == "__main__":
 		code = input_file.read()
 	code = generate_tac(code)
 	print("#### code ")
-	# print(code)
+	print(code)
 
 		
 	output_file = open("../tmp/res.mips", "w")
