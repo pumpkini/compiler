@@ -408,13 +408,13 @@ class Cgen(Interpreter):
 
 	def variable(self, tree):
 		type_ = self.visit(tree.children[0])
-		var_name = tree.children[1].value		
+		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
 		# old type doesnt have size so change it to Type (TODO maybe this should change)
 		variable.type_ = type_
 	
-		return ""	
+		return ""
 
 	def expr_assign(self, tree):
 		global stack
