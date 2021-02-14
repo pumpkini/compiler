@@ -107,16 +107,6 @@ class SymbolTable():
 		SymbolTable.symbol_tables.append(self)
 
 
-	# def find_class(self, name, tree=None, error=True):
-	# 	if name in self.classes:
-	# 		return self.classes[name]
-	# 	if self.parent:
-	# 		return self.parent.find_classes(name, tree, error)
-	# 	if error:
-	# 		raise SemanticError(f'Class {name} not found in this scope', tree=tree)
-	# 	return None
-
-
 	def find_var(self, name, tree=None, error=True):
 		if name in self.variables:
 			return self.variables[name]
@@ -138,9 +128,12 @@ class SymbolTable():
 		return None
 
 	def find_type(self, name, tree=None, error=True):
+		print("FIND TYPE")
 		if name in self.types:
+			print("child, ", name)
 			return self.types[name]
 		if self.parent:
+			print("par, ", name)
 			return self.parent.find_type(name, tree, error)
 
 		if error:
@@ -161,9 +154,11 @@ class SymbolTable():
 		self.functions[func.name] = func
 
 	def add_type(self, type_:Type, tree=None):
+		print("IN ADD TYPE")
 		if self.find_type(type_.name, error=False):
 			raise SemanticError('Type already  exist in scope', tree=tree)
-
+		print("out")
+		print(type_)
 		self.types[type_.name] = type_
 
 	#def add_arr_type(self, type_:Array_Type, tree= None):
@@ -336,6 +331,7 @@ class SymbolTableVisitor(Interpreter):
 		stack.append(var)
 
 	def array_type(self, tree):
+		tree.children[0].symbol_table = tree.symbol_table
 		self.visit(tree.children[0])
 		mem_type = stack.pop().name
 		print(mem_type)
