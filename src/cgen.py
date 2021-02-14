@@ -421,11 +421,22 @@ class Cgen(Interpreter):
 		
 		code = ''
 
-		for subtree in tree.children[::-1]:
+
+		# TODO is this tof?
+		functions_trees= []
+		variables_trees = []
+		for subtree in tree.children:
 			if isinstance(subtree, Tree) and subtree.data == 'field':
-				code += self.visit(subtree)
-			else:
-				break
+				if subtree.children[1].data == 'function_decl':
+					functions_trees.append(subtree)
+				else:
+					variables_trees.append(subtree)
+
+		for subtree in variables_trees:
+			code += self.visit(subtree)
+		
+		for subtree in functions_trees:
+			code += self.visit(subtree)
 
 
 		# add vtable
@@ -519,7 +530,7 @@ class Cgen(Interpreter):
 		sw $s0, 0($sp)		# store object variable in stack
 
 		""".replace("\t\t", "\t")
-
+		
 		stack.append(Variable(type_=type_))
 		return code
 
@@ -542,7 +553,6 @@ class Cgen(Interpreter):
 		variable = stack.pop()
 
 		# from_assign_flag = old_from_assign_flag 
-
 		class_ = variable.type_.class_ref
 		if not class_:
 			raise SemanticError("dot(.) can only used with classes", tree=tree)
@@ -2044,7 +2054,7 @@ if __name__ == "__main__":
 		code = input_file.read()
 	code = generate_tac(code)
 	print("#### code ")
-	print(code)
+	# print(code)
 
 		
 	output_file = open("../tmp/res.mips", "w")

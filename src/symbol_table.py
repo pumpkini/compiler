@@ -318,8 +318,6 @@ class SymbolTableVisitor(Interpreter):
 				address= IncDataPointer(4),
 				)
 
-		print("var", var)
-
 		tree.symbol_table.add_var(var, tree)
 		
 		# We need var later (e.g. in formals of funtions)
