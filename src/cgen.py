@@ -1717,7 +1717,6 @@ class Cgen(Interpreter):
 
 		l1 = IncLabels()
 
-		# TODO if index is greater than array size j runtimeError
 		code += f""" 
 				lw $t1, 0($sp) #index
 				addi $sp, $sp, 4
@@ -1725,9 +1724,13 @@ class Cgen(Interpreter):
 				lw $t2, {l_side_variable.address}($gp)
 				lw $t3, 0($t2) 	#array size
 
-				# TODOee ke bala neveshtam
+				addi $t1, $t1, 1 # add one to index ('cause of size)
 
-				mul $t1, $t1, 4 #index offset in bytes
+				ble $t1, $zero, runtimeError
+				bgt $t1, $t3, runtimeError
+
+
+				mul $t1, $t1, 4 # index offset in bytes
 
 				add $t2, $t2, $t1	#t2: address khooneye arraye ke mikhaim
 
@@ -1947,12 +1950,12 @@ class Cgen(Interpreter):
 				### array
 				{expr_code}
 
-				lw $t0, 0($sp)	# array size
+				lw $t1, 0($sp)	# array size
 				addi $sp, $sp, 4
 
-				ble $t0, $zero, runtimeError
+				ble $t1, $zero, runtimeError
 
-				add $t0, $t0, 1  # add one more place for size
+				add $t0, $t1, 1  # add one more place for size
 				
 				mul $t0, $t0, 4	# array size in bytes
 
@@ -1962,7 +1965,7 @@ class Cgen(Interpreter):
 
 				move $s0, $v0		# s0: address of array
 
-				sw $t0, 0($s0)	# store size in first word
+				sw $t1, 0($s0)	# store size in first word
 
 				addi $sp, $sp, -4
 				sw $s0, 0($sp)
