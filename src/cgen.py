@@ -335,7 +335,7 @@ class Cgen(Interpreter):
 
 		
 
-		
+
 		function = tree.symbol_table.find_func(function_name, tree=tree)
 
 		stack_size_initial = len(stack)
@@ -960,7 +960,17 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t","")
 		
 		if constant_type == 'NULL':
-			# TODO ??
+			# TODO i am not suree
+			value = 0
+			type_ = tree.symbol_table.find_type('int', tree=tree)
+			
+			code = f"""
+				### constant null
+				li $t0, {value}
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t","")
+			
 			type_ = Type('null')
 
 		stack.append(Variable(type_=type_))
@@ -1370,22 +1380,7 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'equal\'', tree=tree)
-
-		#TODO check for null and objects
-		if var1.type_.name == 'int' or var1.type_.name == 'bool':
-			# t0 operand 1
-			# t1 operand 2
-			code += f"""
-					### equal
-					lw $t1, 0($sp)
-					lw $t0, 4($sp)
-					seq $t2, $t0, $t1
-					sw $t2, 4($sp) 
-					addi $sp, $sp, 4
-					""".replace("\t\t\t\t", "")
-		elif var1.type_.name == 'double':
+		if var1.type_.name == 'double' and var2.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
 			l1 = IncLabels()
@@ -1402,7 +1397,7 @@ class Cgen(Interpreter):
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t", "")
 
-		elif var1.type_.name == 'string':
+		elif var1.type_.name == 'string' and var2.type_.name == 'string':
 			# s0 str1 address
 			# s1 str2 address
 			labelcnt = IncLabels()
@@ -1439,13 +1434,29 @@ class Cgen(Interpreter):
 				end_{labelcnt}:
 
 				""".replace("\t\t\t\t","")
+
+		elif var1.type_.name != 'array' and\
+			(var1.type_.name == var2.type_.name or\
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
+			# t0 operand 1
+			# t1 operand 2
+			code += f"""
+					### equal
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					seq $t2, $t0, $t1
+					sw $t2, 4($sp) 
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t", "")
 				
 		else:
+			if var1.type_.name != var2.type_.name:
+				raise SemanticError('var1 type != var2 type in \'equal\'', tree=tree)
 			raise SemanticError('types are not suitable for \'eq\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
-
 
 
 	def not_equal(self,tree):
@@ -1455,22 +1466,8 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-		if var1.type_.name != var2.type_.name:
-			raise SemanticError('var1 type != var2 type in \'nequal\'', tree=tree)
-		
-		#TODO check for null and other objects
-		if var1.type_.name == 'int' or var1.type_.name == 'bool':
-			# t0 operand 1
-			# t1 operand 2
-			code += f"""
-					### nequal
-					lw $t1, 0($sp)
-					lw $t0, 4($sp)
-					sne $t2, $t0, $t1
-					sw $t2, 4($sp) 
-					addi $sp, $sp, 4
-					""".replace("\t\t\t\t", "")
-		elif var1.type_.name == 'double':
+		print(var1, var2)
+		if var1.type_.name == 'double' and var2.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
 			l1 = IncLabels()
@@ -1486,7 +1483,7 @@ class Cgen(Interpreter):
 					sw $t0, 4($sp)
 					addi $sp, $sp, 4
 					""".replace("\t\t\t\t", "")
-		elif var1.type_.name == 'string':
+		elif var1.type_.name == 'string' and var2.type_.name == 'string':
 			# s0 str1 address
 			# s1 str2 address
 			labelcnt = IncLabels()
@@ -1523,7 +1520,23 @@ class Cgen(Interpreter):
 				end_{labelcnt}:
 
 				""".replace("\t\t\t\t","")
+		elif var1.type_.name != 'array' and\
+			(var1.type_.name == var2.type_.name or\
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
+			# t0 operand 1
+			# t1 operand 2
+			code += f"""
+					### nequal
+					lw $t1, 0($sp)
+					lw $t0, 4($sp)
+					sne $t2, $t0, $t1
+					sw $t2, 4($sp) 
+					addi $sp, $sp, 4
+					""".replace("\t\t\t\t", "")
 		else:
+			if var1.type_.name != var2.type_.name:
+				raise SemanticError('var1 type != var2 type in \'nequal\'', tree=tree)
 			raise SemanticError('types are not suitable for \'neq\'', tree=tree)
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
