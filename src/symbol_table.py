@@ -128,7 +128,6 @@ class SymbolTable():
 		return None
 
 	def find_type(self, name, tree=None, error=True):
-		print("find type", name)
 		if name in self.types:
 			return self.types[name]
 		if self.parent:
@@ -152,11 +151,9 @@ class SymbolTable():
 		self.functions[func.name] = func
 
 	def add_type(self, type_:Type, tree=None):
-		print("IN ADD TYPE")
 		if self.find_type(type_.name, error=False):
 			raise SemanticError('Type already  exist in scope', tree=tree)
-		print("out")
-		print(type_)
+
 		self.types[type_.name] = type_
 
 	#def add_arr_type(self, type_:Array_Type, tree= None):

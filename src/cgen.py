@@ -596,6 +596,8 @@ class Cgen(Interpreter):
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
 
+		print("varvar", type_)
+
 		code = f"""
 		# variable init
 		li $t0, 0
@@ -633,12 +635,45 @@ class Cgen(Interpreter):
 
 		code += f"""
 				### store
+
+
+li $v0, 1		# syscall for print integer 
+	lw $a0, 0($sp)
+	syscall
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
+li $v0, 1		# syscall for print integer 
+	lw $a0, 4($sp)
+	syscall
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
+  li $v0, 1		# syscall for print integer 
+	lw $a0, 8($sp)
+	syscall
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
+
 				lw $t0, 0($sp)
 				addi $sp, $sp, 4
 				lw $t1, 4($sp) # load address from stack
 				addi $sp, $sp, 8
 				sw $t0, 0($t1)
 
+li $v0, 1		# syscall for print integer 
+	move $a0, $t0
+	syscall
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
+  li $v0, 1		# syscall for print integer 
+	move $a0, $t1
+	syscall
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
 				""".replace("\t\t\t\t\t","\t")
 
 		# if lvalue_var.type_.name == 'int' or\
@@ -684,6 +719,7 @@ class Cgen(Interpreter):
 		var_name = tree.children[0].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 		stack.append(variable)
+		print("identtttttt", variable)
 
 
 		if from_assign_flag:
@@ -692,6 +728,17 @@ class Cgen(Interpreter):
 				### ident
 				addi $t0, $gp, {variable.address}
 				sw $t0, -4($sp)
+
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
+	li $v0, 1		# syscall for print integer 
+	move $a0, $t0
+	syscall
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
+			
 				lw $t0, {variable.address}($gp)
 				sw $t0, -8($sp)
 				addi $sp, $sp, -8
@@ -889,8 +936,10 @@ class Cgen(Interpreter):
 		return type_
 
 	def array_type(self, tree):
-		arr_type = tree.children[0]
+		arr_type = self.visit(tree.children[0])
 		type_ = Type(name="array", arr_type=arr_type)
+
+		print("array_type", type_)
 
 		return type_
 
@@ -1689,29 +1738,73 @@ class Cgen(Interpreter):
 
 
 	def l_value_array(self, tree):
-		code = self.visit(tree.children[1])
-		index = stack.pop()
-		self.visit(tree.children[0])
-		var_name = stack.pop().name
-		variable = tree.symbol_table.find_var(var_name, tree=tree)
+		global from_assign_flag
 
-		if index.type_.name != 'int':
+		store_addr_code = ''
+		if from_assign_flag:
+			store_addr_code = """
+			sw $t2, -4($sp)
+			add $sp, $sp, -4
+			"""
+
+		from_assign_flag = False
+
+
+		code = ""
+		code += self.visit(tree.children[0])
+		l_side_variable = stack.pop()
+
+		print("l_side_variable", l_side_variable)
+
+		code += self.visit(tree.children[1])
+		index_var = stack.pop()
+
+		if index_var.type_.name != 'int':
 			raise SemanticError('index type is not int', tree = tree)
+
+		if l_side_variable.type_.name != 'array':
+			raise SemanticError('left side type is not array', tree = tree)
+
 		l1 = IncLabels()
+
+		# TODO if index is greater than array size j runtimeError
 		code += f""" 
-				la $t2, {variable.address}
-				la $t3, 0($t0) #array size
-				li $t1, 0($sp) #index
-			s_iter_array_{l1}:
-				beq $t1, $zero, f_iter_array{l1}
-				addi $t2, $t2, -4 
-				addi $t1, $t1, -1
-			f_iter_array_{l1}:
-				lw $t2, 0($t2)
-				sw $t2, 0($sp)	
-				
-			
+				lw $t1, 0($sp) #index
+				addi $sp, $sp, 4
+
+				lw $t2, {l_side_variable.address}($gp)
+				lw $t3, 0($t2) 	#array size
+
+				# TODOee ke bala neveshtam
+
+				mul $t1, $t1, 4 #index offset in bytes
+
+				add $t2, $t2, $t1	#t2: address khooneye arraye ke mikhaim
+
+				{store_addr_code}
+
+				lw $t0, 0($t2)		#t0: value khooneye arraye ke mikhaim
+				sw $t0, -4($sp)
+				add $sp, $sp, -4
+
 				""".replace("\t\t\t", "")
+				
+			# s_iter_array_{l1}:
+			# 	beq $t1, $zero, f_iter_array{l1}
+			# 	addi $t2, $t2, -4 
+			# 	addi $t1, $t1, -1
+			# f_iter_array_{l1}:
+			# 	lw $t2, 0($t2)
+			# 	sw $t2, 0($sp)	
+			# 	""".replace("\t\t\t", "")
+
+
+		new_var = Variable(
+			type_=l_side_variable.type_.arr_type
+		)
+		print("\nnew_var", new_var)
+		stack.append(new_var)
+
 		return code
 
 
@@ -1895,9 +1988,9 @@ class Cgen(Interpreter):
 		expr_variabele = stack.pop() #there is variable in it? :O
 		
 		mem_type = self.visit(tree.children[1])
-		type_ = Type("array",arr_type = mem_type)
+		type_ = Type("array", arr_type = mem_type)
 		
-		print("#####I'm in new array")
+		print("#####I'm in new array", type_)
 		# if size < 0 or type(size) != "int":
 		# 	raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
 
@@ -1907,18 +2000,27 @@ class Cgen(Interpreter):
 				{expr_code}
 
 				lw $t0, 0($sp)	# array size
+				addi $sp, $sp, 4
 
-				ble $t0, $zero , runtimeError
+				ble $t0, $zero, runtimeError
 
 				add $t0, $t0, 1  # add one more place for size
 				
 				mul $t0, $t0, 4	# array size in bytes
 
 				li $v0 , 9
-				la $a0 , $t0
+				move $a0 , $t0
 				syscall
 
 				move $s0, $v0		# s0: address of array
+
+
+li $v0, 1		# syscall for print integer 
+	move $a0, $s0
+	syscall
+  la $a0, newLineStr
+  li $v0, 4	# syscall for print string
+  syscall
 
 				sw $t0, 0($s0)	# store size in first word
 
