@@ -2,7 +2,7 @@
 
 program: decl+
 
-decl: variable_decl
+?decl: variable_decl
     | function_decl
     | class_decl
     | interface_decl
@@ -24,10 +24,10 @@ function_decl: type IDENT "(" formals ")" statement_block
 formals: variable ("," variable)*
     |
 
-class_decl: CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT+ ",")? "{" field* "}"
+class_decl: CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT ("," IDENT)*)?  "{" field* "}"
 
-field: access_mode variable_decl -> field_var
-    | access_mode function_decl -> field_func
+field: access_mode variable_decl 
+    | access_mode function_decl
 
 access_mode: PRIVATE
     | PROTECTED
@@ -101,7 +101,7 @@ print_stmt: PRINT "(" actuals ")" ";"
     | "NewArray" "(" expr "," type ")" -> new_array 
     | "ReadInteger" "(" ")" -> read_integer 
     | "ReadLine" "(" ")" -> read_line 
-    | "new" IDENT -> new_ident 
+    | NEW IDENT -> new_ident 
     | "(" expr ")" 
     | l_value 
     | call

@@ -1,7 +1,7 @@
 import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from symbol_table import Function, SymbolTable, Variable, Type, SymbolTableVisitor, ParentVisitor
@@ -103,15 +103,14 @@ class Cgen(Interpreter):
 
 		return code
 	
+	# def	decl(self, tree):
 
-	def	decl(self, tree):
-
-		code = ''
-		for decl in tree.children:
-			if decl.data == 'function_decl':
-				code += self.visit(decl)
+	# 	code = ''
+	# 	for decl in tree.children:
+	# 		if decl.data == 'function_decl':
+	# 			code += self.visit(decl)
 		
-		return code
+	# 	return code
 	
 	def function_decl(self, tree):
 
@@ -281,7 +280,6 @@ class Cgen(Interpreter):
 		
 		# TODO maybe array need extra care 
 		
-		print(variable.type_, "@$@#$@#$", function.return_type)
 		if variable.type_.name != function.return_type.name:
 			raise SemanticError("return type does not match function declaration", tree=tree)			
 
@@ -291,6 +289,121 @@ class Cgen(Interpreter):
 		
 		return code
 
+
+	def class_decl(self, tree): 
+		# CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT ("," IDENT)*)?  "{" field* "}"
+		
+		# TODO extends
+		# TODO implements
+		# TODO access modes
+
+
+		class_name = tree.children[1].value
+		class_ = tree.symbol_table.find_type(class_name).class_ref
+		
+		code = ''
+
+		for subtree in tree.children[::-1]:
+			if isinstance(subtree, Tree) and subtree.data == 'field':
+				code += self.visit(subtree)
+			else:
+				break
+
+
+		# add vtable
+		
+		# class.address -> vtable
+		#			  ----------
+		# vtable ->  |	func1	|
+		#			 |	func2	|
+		# 			 |   ...	|
+		#			  ----------
+		
+
+		vtable_size = len(class_.member_functions)
+		
+		code += f"""
+		# class vtable
+		
+		li $v0, 9
+		li $a0, {vtable_size * 4}
+		syscall
+
+		sw $v0, {class_.address}($gp)
+		move $s0, $v0		# s0: address of vtable 
+
+		""".replace("\t\t", "\t")
+
+		for f in class_.member_functions.values():
+			func_label = f.label
+			
+			# store function address in vtable
+
+			code += f"""
+			la $t0, {func_label}
+			sw $t0, 0($s0)
+			addi $s0, $s0, 4
+			""".replace("\t\t", "")
+		
+		return code
+
+
+	def field(self, tree):
+		# TODO access mode
+
+		access_mode = self.visit(tree.children[0])
+		
+		if access_mode == '' or access_mode == 'public':
+			return self.visit(tree.children[1])
+
+
+	def access_mode(self, tree):
+		if tree.children:
+			return tree.children[0].value
+		return ''
+
+
+	def new_ident(self, tree):
+		ident_name = tree.children[1].value		
+		type_ = tree.symbol_table.find_type(ident_name, tree=tree)
+		
+		class_ = type_.class_ref
+		if not class_:
+			raise SemanticError("New must be userd with class name", tree=tree)
+
+		
+		# allocate memory for object
+
+		# class.address -> vtable
+		#			  			 ------------
+		# object_variable	->  |	vtable   | -> ...
+		#			 			|	field1	 |
+		#			 			|	field2 	 |
+		# 			 			|   ...		 |
+		#			 			 ------------
+		
+		object_size = len(class_.member_data) + 1
+
+		code = f"""
+		# new object (new_ident)
+		
+		li $v0, 9
+		li $a0, {object_size * 4}
+		syscall
+
+		sw $v0, {class_.address}($gp)
+		move $s0, $v0		# s0: address of object 
+
+		lw $t0, {class_.address}($gp) 	# t0: address of vtable
+		sw $t0, 0($s0)
+
+		addi $sp, $sp, -4
+		sw $s0, 0($sp)		# store object variable in stack
+
+		""".replace("\t\t", "\t")
+
+		stack.append(Variable(type_=type_))
+		return code
 
 
 	def variable(self, tree):
@@ -353,6 +466,215 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 
 		return code
+
+
+	def ident(self, tree):
+		var_name = tree.children[0].value
+		variable = tree.symbol_table.find_var(var_name, tree=tree)
+		
+		stack.append(variable)
+
+		if variable.type_.name == "double": # TODO do we need this aslan?
+			code = f"""
+					### ident
+					l.s $f2, {variable.address}($gp)
+					addi $sp, $sp, -4
+					s.s $f2, 0($sp)
+					""".replace("\t\t\t\t", "")
+		else:
+			code = f"""
+					### ident
+					lw $t0, {variable.address}($gp)
+					addi $sp, $sp, -4
+					sw $t0, 0($sp)
+					""".replace("\t\t\t\t", "")
+		
+		return code
+
+
+
+	# TODO do we need null?
+
+	def constant(self, tree):
+		constant_type = tree.children[0].type
+		value = "????"
+		type_ = "????"
+
+		code = ''
+		if constant_type == 'INTCONSTANT':
+			value = tree.children[0].value.lower()
+			type_ = tree.symbol_table.find_type('int', tree=tree)
+			
+			value = value.lstrip('0')
+
+			if value == '':
+				value = '0'
+			
+			code = f"""
+				### constant int
+				li $t0, {value}
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t","")
+			
+
+		if constant_type == 'DOUBLECONSTANT':
+			value = tree.children[0].value.lower()
+			type_ = tree.symbol_table.find_type('double', tree=tree)
+
+			value = value.lstrip('0')
+
+			if value[0] == '.':
+				value = '0' + value
+
+			# handle 3.
+			if value[-1] == '.':
+				value = value + '0'
+
+			# handle 3.E2
+			if '.e' in value:
+				value = value.replace('.e', '.0e')
+
+			code = f"""
+				### constant double
+				li.s $f2, {value}
+				addi $sp, $sp, -4
+				s.s $f2, 0($sp)
+				""".replace("\t\t\t","")
+
+
+		if constant_type == 'BOOLCONSTANT':
+			value = 1 if tree.children[0].value == 'true' else 0
+			type_ = tree.symbol_table.find_type('bool', tree=tree)
+			code = f"""
+				### constant bool
+				li $t0, {value}
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t","")
+
+
+		if constant_type == 'STRINGCONSTANT':
+			value = tree.children[0].value[1:-1]
+			type_ = tree.symbol_table.find_type('string', tree=tree)
+
+			constant_string_label = len(constant_strings)
+			constant_strings.append(value)
+
+			size = len(value) + 1
+			label_number = IncLabels()
+
+			code = f"""
+				### constant string
+				li $v0, 9		# syscall for allocate byte
+				li $a0, {size}
+				syscall
+
+				move $s0, $v0		# s0: address of string
+
+				addi $sp, $sp, -4
+				sw $s0, 0($sp)
+
+				la $s1, constantStr_{constant_string_label}
+				li $t1, 0
+
+			constant_str_{label_number}:
+				lb $t1, 0($s1)
+				sb $t1, 0($s0)
+				beq $t1, $zero, constant_str_end_{label_number} 
+				addi $s1, $s1, 1
+				addi $s0, $s0, 1
+				b constant_str_{label_number}
+
+			constant_str_end_{label_number}:
+
+				""".replace("\t\t\t","")
+		
+		if constant_type == 'NULL':
+			# TODO ??
+			type_ = Type('null')
+
+		stack.append(Variable(type_=type_))
+		return code
+		
+		
+	def print_stmt(self, tree):
+		code = f"""\t\t\t\t### print stmt begin\n"""
+
+		stack_size_initial = len(stack)
+
+		actuals = self.visit(tree.children[1])
+		code += actuals
+		
+		if len(stack) == stack_size_initial:
+			return code
+
+
+		sp_offset = (len(stack) - stack_size_initial - 1) * 4
+		for var in stack[stack_size_initial:]:
+			if var.type_.name  == 'int':
+				code += f"""
+					### print int	
+					li $v0, 1		# syscall for print integer 
+					lw $a0, {sp_offset}($sp)
+					syscall
+					""".replace("\t\t\t\t","")	
+			
+			if var.type_.name  == 'bool':
+				code += f"""
+					### print bool	
+					lw $a0, {sp_offset}($sp)
+					move $s0, $ra 	#save ra
+					jal print_bool
+					move $ra, $s0 	#restore ra
+					""".replace("\t\t\t\t","")	
+
+			if var.type_.name == 'double':
+				code += f"""
+					### print double	
+					li $v0, 2		# syscall for print double 
+					l.s $f12, {sp_offset}($sp)
+					syscall
+					""".replace("\t\t\t\t","")
+
+			if var.type_.name == 'string':
+				code += f"""
+					### print string	
+					li $v0, 4		# syscall for print string 
+					lw $a0, {sp_offset}($sp)
+					syscall
+					""".replace("\t\t\t\t","")
+
+			sp_offset -= 4
+
+		code += f"""
+				la $a0, newLineStr
+				li $v0, 4	# syscall for print string
+				syscall
+				addi $sp, $sp, {(len(stack) - stack_size_initial ) * 4}
+				### print stmt end
+				""".replace("\t\t\t\t","\t")
+
+		while len(stack) > stack_size_initial:
+			stack.pop()
+
+		return code
+
+	def actuals(self, tree):
+		actuals = self.visit_children(tree)
+		code = '\n'.join(actuals)
+		return code
+
+	# type return Type
+	def type(self, tree):
+		type_name = tree.children[0].value
+		type_ = tree.symbol_table.find_type(type_name, tree=tree)
+
+		if not type_:
+			raise SemanticError("Type not in scope",tree=tree)
+		return type_
+
+
 
 
 	def add(self, tree):
@@ -591,8 +913,6 @@ class Cgen(Interpreter):
 		return code
 
 
-
-
 	def neg(self, tree):
 		code = ''
 		code += self.visit(tree.children[0])
@@ -617,213 +937,6 @@ class Cgen(Interpreter):
 
 		stack.append(Variable(type_=var.type_))
 		return code
-
-
-	def ident(self, tree):
-		var_name = tree.children[0].value
-		variable = tree.symbol_table.find_var(var_name, tree=tree)
-		
-		stack.append(variable)
-
-		if variable.type_.name == "double": # TODO do we need this aslan?
-			code = f"""
-					### ident
-					l.s $f2, {variable.address}($gp)
-					addi $sp, $sp, -4
-					s.s $f2, 0($sp)
-					""".replace("\t\t\t\t", "")
-		else:
-			code = f"""
-					### ident
-					lw $t0, {variable.address}($gp)
-					addi $sp, $sp, -4
-					sw $t0, 0($sp)
-					""".replace("\t\t\t\t", "")
-		
-		return code
-
-
-
-	# TODO do we need null?
-
-	def constant(self, tree):
-		constant_type = tree.children[0].type
-		value = "????"
-		type_ = "????"
-
-		code = ''
-		if constant_type == 'INTCONSTANT':
-			value = tree.children[0].value.lower()
-			type_ = tree.symbol_table.find_type('int', tree=tree)
-			
-			value = value.lstrip('0')
-
-			if value == '':
-				value = '0'
-			
-			code = f"""
-				### constant int
-				li $t0, {value}
-				addi $sp, $sp, -4
-				sw $t0, 0($sp)
-				""".replace("\t\t\t","")
-			
-
-		if constant_type == 'DOUBLECONSTANT':
-			value = tree.children[0].value.lower()
-			type_ = tree.symbol_table.find_type('double', tree=tree)
-
-			value = value.lstrip('0')
-
-			if value[0] == '.':
-				value = '0' + value
-
-			# handle 3.
-			if value[-1] == '.':
-				value = value + '0'
-
-			# handle 3.E2
-			if '.e' in value:
-				value = value.replace('.e', '.0e')
-
-			code = f"""
-				### constant double
-				li.s $f2, {value}
-				addi $sp, $sp, -4
-				s.s $f2, 0($sp)
-				""".replace("\t\t\t","")
-
-
-		if constant_type == 'BOOLCONSTANT':
-			value = 1 if tree.children[0].value == 'true' else 0
-			type_ = tree.symbol_table.find_type('bool', tree=tree)
-			code = f"""
-				### constant bool
-				li $t0, {value}
-				addi $sp, $sp, -4
-				sw $t0, 0($sp)
-				""".replace("\t\t\t","")
-
-
-		if constant_type == 'STRINGCONSTANT':
-			value = tree.children[0].value[1:-1]
-			type_ = tree.symbol_table.find_type('string', tree=tree)
-
-			constant_string_label = len(constant_strings)
-			constant_strings.append(value)
-
-			size = len(value) + 1
-			label_number = IncLabels()
-
-			code = f"""
-				### constant string
-				li $v0, 9		# syscall for allocate byte
-				li $a0, {size}
-				syscall
-
-				move $s0, $v0		# s0: address of string
-
-				addi $sp, $sp, -4
-				sw $s0, 0($sp)
-
-				la $s1, constantStr_{constant_string_label}
-				li $t1, 0
-
-			constant_str_{label_number}:
-				lb $t1, 0($s1)
-				sb $t1, 0($s0)
-				beq $t1, $zero, constant_str_end_{label_number} 
-				addi $s1, $s1, 1
-				addi $s0, $s0, 1
-				b constant_str_{label_number}
-
-			constant_str_end_{label_number}:
-
-				""".replace("\t\t\t","")
-		
-		if constant_type == 'NULL':
-			# TODO ??
-			type_ = Type('null')
-
-		stack.append(Variable(type_=type_))
-		return code
-		
-		
-	def print_stmt(self, tree):
-		code = f"""\t\t\t### print stmt begin\n"""
-
-		stack_size_initial = len(stack)
-
-		actuals = self.visit(tree.children[1])
-		code += actuals
-		
-		if len(stack) == stack_size_initial:
-			return code
-
-
-		sp_offset = (len(stack) - stack_size_initial - 1) * 4
-		for var in stack[stack_size_initial:]:
-			if var.type_.name  == 'int':
-				code += f"""
-					### print int	
-					li $v0, 1		# syscall for print integer 
-					lw $a0, {sp_offset}($sp)
-					syscall
-					""".replace("\t\t\t\t","")	
-			
-			if var.type_.name  == 'bool':
-				code += f"""
-					### print bool	
-					lw $a0, {sp_offset}($sp)
-					move $s0, $ra 	#save ra
-					jal print_bool
-					move $ra, $s0 	#restore ra
-					""".replace("\t\t\t\t","")	
-
-			if var.type_.name == 'double':
-				code += f"""
-					### print double	
-					li $v0, 2		# syscall for print double 
-					l.s $f12, {sp_offset}($sp)
-					syscall
-					""".replace("\t\t\t\t","")
-
-			if var.type_.name == 'string':
-				code += f"""
-					### print string	
-					li $v0, 4		# syscall for print string 
-					lw $a0, {sp_offset}($sp)
-					syscall
-					""".replace("\t\t\t\t","")
-
-			sp_offset -= 4
-
-		code += f"""
-				la $a0, newLineStr
-				li $v0, 4	# syscall for print string
-				syscall
-				addi $sp, $sp, {(len(stack) - stack_size_initial ) * 4}
-				### print stmt end
-				""".replace("\t\t\t\t","\t")
-
-		while len(stack) > stack_size_initial:
-			stack.pop()
-
-		return code
-
-	def actuals(self, tree):
-		actuals = self.visit_children(tree)
-		code = '\n'.join(actuals)
-		return code
-
-	# type return Type
-	def type(self, tree):
-		type_name = tree.children[0].value
-		type_ = tree.symbol_table.find_type(type_name, tree=tree)
-
-		if not type_:
-			raise SemanticError("Type not in scope",tree=tree)
-		return type_
 
 
 	def boolean_or(self, tree):
@@ -1136,8 +1249,6 @@ class Cgen(Interpreter):
 		return code
 
 
-
-
 	def greater_than(self,tree):
 		code = ''
 		code += self.visit(tree.children[0])
@@ -1243,52 +1354,6 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
 		return code
 
-	def read_line(self, tree):
-		l1 = IncLabels()
-		l2 = IncLabels()
-		l3 = IncLabels()
-		code = f"""
-				### read Line
-				li $v0, 9	# syscall for allocating bytes
-				li $a0, 1000
-				syscall
-				sub $sp, $sp, 4
-				sw $v0, 0($sp)
-				move $a0, $v0
-				li $a1, 1000
-				li $v0, 8	# syscall for read string
-				syscall
-				lw $a0, 0($sp)
-			line_{l1}:
-				lb $t0, 0($a0)
-				beq $t0, 0, end_line_{l1}
-				bne $t0, 10, remover_{l2}
-				li $t2, 0
-				sb $t2, 0($a0)
-			remover_{l2}:
-				bne $t0, 13, remover_{l3}
-				li $t2, 0
-				sb $t2, 0($a0)
-			remover_{l3}:
-				addi $a0, $a0, 1
-				j line_{l1}
-			end_line_{l1}:
-					
-				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('string', tree=tree)))
-		return code
-
-	def read_integer(self, tree):
-		code = f"""
-				li $v0, 5
-				syscall
-				move $t0, $v0
-				addi $sp, $sp, -4
-				sw $t0, 0($sp)
-				""".replace("\t\t\t", "")
-		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
-		return code
-
 
 	def itod(self, tree):
 		code = self.visit(tree.children[1])
@@ -1356,6 +1421,54 @@ class Cgen(Interpreter):
 
 		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
+
+
+	def read_line(self, tree):
+		l1 = IncLabels()
+		l2 = IncLabels()
+		l3 = IncLabels()
+		code = f"""
+				### read Line
+				li $v0, 9	# syscall for allocating bytes
+				li $a0, 1000
+				syscall
+				sub $sp, $sp, 4
+				sw $v0, 0($sp)
+				move $a0, $v0
+				li $a1, 1000
+				li $v0, 8	# syscall for read string
+				syscall
+				lw $a0, 0($sp)
+			line_{l1}:
+				lb $t0, 0($a0)
+				beq $t0, 0, end_line_{l1}
+				bne $t0, 10, remover_{l2}
+				li $t2, 0
+				sb $t2, 0($a0)
+			remover_{l2}:
+				bne $t0, 13, remover_{l3}
+				li $t2, 0
+				sb $t2, 0($a0)
+			remover_{l3}:
+				addi $a0, $a0, 1
+				j line_{l1}
+			end_line_{l1}:
+					
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=tree.symbol_table.find_type('string', tree=tree)))
+		return code
+
+	def read_integer(self, tree):
+		code = f"""
+				li $v0, 5
+				syscall
+				move $t0, $v0
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+				""".replace("\t\t\t", "")
+		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
+		return code
+
 
 	def l_value_array(self, tree):
 		code = self.visit(tree.children[1])
