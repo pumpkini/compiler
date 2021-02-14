@@ -92,11 +92,22 @@ class Cgen(Interpreter):
 		string_length_end:
 			jr $ra
 
+
+
+		runtimeError:
+			la $a0, runtimeErrorStr
+			li $v0, 4	# sys call for print string
+			syscall
+
+			li $v0, 10
+			syscall
+
 		""".replace("\t\t","")
 
 		code_data_seg = """
 		.data
 
+		runtimeErrorStr: .asciiz "oh no runtime error"
 		falseStr: .asciiz "false"
 		trueStr: .asciiz "true"
 		newLineStr: .asciiz "\\n"
@@ -332,6 +343,8 @@ class Cgen(Interpreter):
 
 		code += f"""
 			lw $t0, {(arguments_number - 1) * 4}($sp)	# t0: object
+			
+			beq $t0, $zero, runtimeError
 
 			lw $t1, 0($t0)	# t1: vtable (I hope so)
 
@@ -400,6 +413,8 @@ class Cgen(Interpreter):
 		# TODO implements
 		# TODO access modes
 
+		# TODO varibale without 'this' won't work
+		# TODO make sure new object has been called before accessing an object fields
 
 		class_name = tree.children[1].value
 		class_ = tree.symbol_table.find_type(class_name).class_ref
@@ -508,9 +523,6 @@ class Cgen(Interpreter):
 		stack.append(Variable(type_=type_))
 		return code
 
-	def this(self, tree):
-		print("hello")
-
 
 	def l_value_class_field(self, tree):
 		global from_assign_flag 
@@ -547,8 +559,10 @@ class Cgen(Interpreter):
 		
 		{expr_code}
 				
-		lw $t1, 0($sp) 	# t0: address of object
+		lw $t1, 0($sp) 	# t1: object
 		addi $sp, $sp, 4
+
+		beq $t1, $zero, runtimeError
   
 		add $t1, $t1, {(index + 1) * 4} # t1: field
 
@@ -582,7 +596,13 @@ class Cgen(Interpreter):
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
 
-		return ""	
+		code = f"""
+		# variable init
+		li $t0, 0
+		sw $t0, {variable.address}($gp)
+		""".replace("\t\t", "\t")
+
+		return code
 
 	def expr_assign(self, tree):
 		global from_assign_flag
@@ -663,18 +683,9 @@ class Cgen(Interpreter):
 		global from_assign_flag
 		var_name = tree.children[0].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
-		print("ident ", variable, "assign flag", from_assign_flag)
 		stack.append(variable)
 
-		# if variable.type_.name == "double": # TODO do we need this aslan?
-		# 	code = f"""
-		# 			### ident
-		# 			l.s $f2, {variable.address}($gp)
-		# 			addi $sp, $sp, -4
-		# 			s.s $f2, 0($sp)
-		# 			""".replace("\t\t\t\t", "")
-		# else:
-		# 	
+
 		if from_assign_flag:
 			# if this l_value called from assign we need to store address. maybe, maybe not :(
 			code = f"""
