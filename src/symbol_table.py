@@ -166,6 +166,9 @@ class SymbolTable():
 
 		self.types[type_.name] = type_
 
+	#def add_arr_type(self, type_:Array_Type, tree= None):
+	#	if self.find_type(type_.)
+
 	
 	# # TODO do we need this?
 	# def add_class(self, class_:Class, tree=None):
@@ -334,7 +337,8 @@ class SymbolTableVisitor(Interpreter):
 
 	def array_type(self, tree):
 		self.visit(tree.children[0])
-		mem_type = stack.pop()
+		mem_type = stack.pop().name
+		print(mem_type)
 		stack.append(Type("array",arr_type = mem_type))
 
 
