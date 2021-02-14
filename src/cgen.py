@@ -21,6 +21,8 @@ stack_of_functions = []
 
 class_init_codes = ''
 
+class_stack = []
+
 from_assign_flag = False
 
 def IncLabels():
@@ -416,8 +418,11 @@ class Cgen(Interpreter):
 		# TODO varibale without 'this' won't work
 		# TODO make sure new object has been called before accessing an object fields
 
+		
 		class_name = tree.children[1].value
 		class_ = tree.symbol_table.find_type(class_name).class_ref
+
+		class_stack.append(class_)
 		
 		code = ''
 
@@ -475,6 +480,8 @@ class Cgen(Interpreter):
 
 			ind += 4
 		
+		class_stack.pop()
+
 		return code
 
 
@@ -603,6 +610,7 @@ class Cgen(Interpreter):
 		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
+	
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
 
@@ -692,7 +700,63 @@ class Cgen(Interpreter):
 	def l_value_ident(self, tree):
 		global from_assign_flag
 		var_name = tree.children[0].value
+
+		class_ = None
+		if len(class_stack) > 0:
+			class_ = class_stack[-1]
+
+		variable = tree.symbol_table.find_var(var_name, tree=tree, error=False, depth_one=True)
+
+		# check if variable is from class (but with out 'this')
+		if not variable and class_:
+			class_var, index = class_.get_var_and_index(var_name, error=False)
+			
+			if class_var: # use 'this'
+				store_address_code = ""
+				if from_assign_flag:
+					store_address_code = """
+					addi $sp, $sp, -4
+					sw $t1, 0($sp)	# store address in stack
+					"""
+				
+				from_assign_flag = False
+
+				this_variable = tree.symbol_table.find_var('this', tree=tree,)
+
+				code = f"""
+				# l_value_class_field in l_value_idnet
+				
+				# this
+				lw $t0, {this_variable.address}($gp)
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
+						
+				lw $t1, 0($sp) 	# t1: object
+				addi $sp, $sp, 4
+
+				beq $t1, $zero, runtimeError
+		
+				add $t1, $t1, {(index + 1) * 4} # t1: field
+
+				{store_address_code}
+
+				lw $t2, 0($t1)
+				addi $sp, $sp, -4
+				sw $t2, 0($sp) 	# store value in stack
+
+				""".replace("\t\t", "\t")
+
+
+				this_object_var = Variable(
+					type_ = class_var.type_
+				)
+
+				stack.append(this_object_var)
+				return code
+
+		
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
+		
 		stack.append(variable)
 
 

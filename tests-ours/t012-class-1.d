@@ -2,11 +2,15 @@
 class Person {
     string name;
     int age;
-    Cat cat;
+    
 
     string our_name() {
-      return this.name + " " +  this.cat.name;
+      Print(age);
+      Print(age == this.age);
+      return name + " " +  this.cat.name;
     }
+
+    Cat cat;
 }
 
 class Cat {
@@ -21,10 +25,9 @@ int main() {
     Cat c;
     Person p2;
     
-    c = new Cat;
-    c.name = "saba";
-    
+    c = new Cat;    
     p = new Person;
+    p.age = 22;
     p.cat = c;
     p.cat.name = "pishi";
     p.cat.meow();

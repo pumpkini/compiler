@@ -107,20 +107,30 @@ class SymbolTable():
 		SymbolTable.symbol_tables.append(self)
 
 
-	def find_var(self, name, tree=None, error=True):
+	# def find_class(self, name, tree=None, error=True):
+	# 	if name in self.classes:
+	# 		return self.classes[name]
+	# 	if self.parent:
+	# 		return self.parent.find_classes(name, tree, error)
+	# 	if error:
+	# 		raise SemanticError(f'Class {name} not found in this scope', tree=tree)
+	# 	return None
+
+
+	def find_var(self, name, tree=None, error=True, depth_one=False):
 		if name in self.variables:
 			return self.variables[name]
-		if self.parent:
+		if self.parent and not depth_one:
 			return self.parent.find_var(name, tree, error)
 
 		if error:
 			raise SemanticError(f'Variable {name} not found in this scope', tree=tree)
 		return None
 
-	def find_func(self, name, tree=None, error=True):
+	def find_func(self, name, tree=None, error=True, depth_one=False):
 		if name in self.functions:
 			return self.functions[name]
-		if self.parent:
+		if self.parent and not depth_one:
 			return self.parent.find_func(name, tree, error)
 
 		if error:
