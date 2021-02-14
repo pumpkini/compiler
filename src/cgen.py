@@ -1691,7 +1691,8 @@ class Cgen(Interpreter):
 	def l_value_array(self, tree):
 		code = self.visit(tree.children[1])
 		index = stack.pop()
-		var_name = tree.children[0].value
+		self.visit(tree.children[0])
+		var_name = stack.pop().name
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
 		if index.type_.name != 'int':
