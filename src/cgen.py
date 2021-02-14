@@ -596,8 +596,6 @@ class Cgen(Interpreter):
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
 
-		print("varvar", type_)
-
 		code = f"""
 		# variable init
 		li $t0, 0
@@ -686,7 +684,6 @@ class Cgen(Interpreter):
 		var_name = tree.children[0].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 		stack.append(variable)
-		print("identtttttt", variable)
 
 
 		if from_assign_flag:
@@ -888,15 +885,13 @@ class Cgen(Interpreter):
 	# type return Type
 	def type(self, tree):
 		type_name = tree.children[0].value
-		print("type", type_name)
 		type_ = tree.symbol_table.find_type(type_name, tree=tree)
+
 		return type_
 
 	def array_type(self, tree):
 		arr_type = self.visit(tree.children[0])
 		type_ = Type(name="array", arr_type=arr_type)
-
-		print("array_type", type_)
 
 		return type_
 
@@ -1711,8 +1706,6 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[0])
 		l_side_variable = stack.pop()
 
-		print("l_side_variable", l_side_variable)
-
 		code += self.visit(tree.children[1])
 		index_var = stack.pop()
 
@@ -1759,7 +1752,6 @@ class Cgen(Interpreter):
 		new_var = Variable(
 			type_=l_side_variable.type_.arr_type
 		)
-		print("\nnew_var", new_var)
 		stack.append(new_var)
 
 		return code
@@ -1947,7 +1939,6 @@ class Cgen(Interpreter):
 		mem_type = self.visit(tree.children[1])
 		type_ = Type("array", arr_type = mem_type)
 		
-		print("#####I'm in new array", type_)
 		# if size < 0 or type(size) != "int":
 		# 	raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
 
@@ -2007,6 +1998,7 @@ def generate_tac(code):
 	except ParseError as e:
 		# TODO
 		print(e)
+		print(e.with_traceback())
 		return e
 
 	try:

@@ -11,7 +11,7 @@ program: decl+
 
 variable: type IDENT
 
-type.2: INT
+type.-1: INT
     | DOUBLE
     | BOOL
     | STRING
