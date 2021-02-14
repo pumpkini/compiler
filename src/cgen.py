@@ -473,7 +473,7 @@ class Cgen(Interpreter):
 		
 		class_ = type_.class_ref
 		if not class_:
-			raise SemanticError("New must be userd with class name", tree=tree)
+			raise SemanticError("New must be used with class name", tree=tree)
 
 		
 		# allocate memory for object
@@ -872,6 +872,7 @@ class Cgen(Interpreter):
 
 	# type return Type
 	def type(self, tree):
+
 		type_name = tree.children[0].value
 		type_ = tree.symbol_table.find_type(type_name, tree=tree)
 
@@ -879,8 +880,13 @@ class Cgen(Interpreter):
 			raise SemanticError("Type not in scope",tree=tree)
 		return type_
 
+	def array_type(self, tree):
+		type_ = tree.symbol_table.find_type("array", tree= tree.children[0])
 
+		if not type_:
+			raise SemanticError("Array Type not in scope", tree=tree.children[0])
 
+		return type_
 
 	def add(self, tree):
 		code = ''
@@ -1878,12 +1884,9 @@ class Cgen(Interpreter):
 
 	def new_array(self, tree):
 		code = self.visit(tree.children[0])
-		size = int(stack.pop())
-
-		mem_type_name = tree.children[1].value
-
+		size = stack.pop() #there is variable in it? :O
+		mem_type_name = self.visit(tree.children[1])
 		mem_type = tree.symbol_table.find_type(Type(mem_type_name))
-
 		type_ = Type("array",arr_type = mem_type)
 
 		if size < 0 or type(size) != "int":

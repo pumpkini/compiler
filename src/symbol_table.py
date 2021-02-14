@@ -227,13 +227,6 @@ class SymbolTableVisitor(Interpreter):
 		type_ = tree.children[0].value
 		stack.append(Type(type_))
 
-	def array_type(self, tree):
-		if isinstance(tree.children[0], Tree):
-			tree.children[0].symbol_table = tree.symbol_table
-			self.visit(tree.children[0])
-			mem_type = stack.pop()
-			stack.append(Type(name = str("array"),arr_type = mem_type))
-
 
 	def function_decl(self, tree):
 		# stack frame
@@ -338,6 +331,11 @@ class SymbolTableVisitor(Interpreter):
 		
 		# We need var later (e.g. in formals of funtions)
 		stack.append(var)
+
+	def array_type(self, tree):
+		self.visit(tree.children[0])
+		mem_type = stack.pop()
+		stack.append(Type("array",arr_type = mem_type))
 
 
 	def if_stmt(self, tree):
