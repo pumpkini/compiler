@@ -101,7 +101,7 @@ print_stmt: PRINT "(" actuals ")" ";"
     | "NewArray" "(" expr "," type ")" -> new_array 
     | "ReadInteger" "(" ")" -> read_integer 
     | "ReadLine" "(" ")" -> read_line 
-    | "new" IDENT -> new_ident 
+    | NEW IDENT -> new_ident 
     | "(" expr ")" 
     | l_value 
     | call

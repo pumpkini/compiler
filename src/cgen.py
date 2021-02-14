@@ -1,7 +1,7 @@
 import logging
 from lark import Lark, logger, __file__ as lark_file, ParseError, Tree
 from lark.visitors import Interpreter
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from symbol_table import Function, SymbolTable, Variable, Type, SymbolTableVisitor, ParentVisitor
@@ -293,8 +293,14 @@ class Cgen(Interpreter):
 	def class_decl(self, tree): 
 		# CLASS IDENT (EXTENDS IDENT)? (IMPLEMENTS IDENT ("," IDENT)*)?  "{" field* "}"
 		
+		# TODO extends
+		# TODO implements
+		# TODO access modes
+
+
 		class_name = tree.children[1].value
-		print("CLAAAASSSS", class_name, tree.children)
+		class_ = tree.symbol_table.find_type(class_name).class_ref
+		
 		code = ''
 
 		for subtree in tree.children[::-1]:
@@ -303,6 +309,42 @@ class Cgen(Interpreter):
 			else:
 				break
 
+
+		# add vtable
+		
+		# class.address -> vtable
+		#			  ----------
+		# vtable ->  |	func1	|
+		#			 |	func2	|
+		# 			 |   ...	|
+		#			  ----------
+		
+
+		vtable_size = len(class_.member_functions)
+		
+		code += f"""
+		# class vtable
+		
+		li $v0, 9
+		li $a0, {vtable_size * 4}
+		syscall
+
+		sw $v0, {class_.address}($gp)
+		move $s0, $v0		# s0: address of vtable 
+
+		""".replace("\t\t", "\t")
+
+		for f in class_.member_functions.values():
+			func_label = f.label
+			
+			# store function address in vtable
+
+			code += f"""
+			la $t0, {func_label}
+			sw $t0, 0($s0)
+			addi $s0, $s0, 4
+			""".replace("\t\t", "")
+		
 		return code
 
 
@@ -319,6 +361,49 @@ class Cgen(Interpreter):
 		if tree.children:
 			return tree.children[0].value
 		return ''
+
+
+	def new_ident(self, tree):
+		ident_name = tree.children[1].value		
+		type_ = tree.symbol_table.find_type(ident_name, tree=tree)
+		
+		class_ = type_.class_ref
+		if not class_:
+			raise SemanticError("New must be userd with class name", tree=tree)
+
+		
+		# allocate memory for object
+
+		# class.address -> vtable
+		#			  			 ------------
+		# object_variable	->  |	vtable   | -> ...
+		#			 			|	field1	 |
+		#			 			|	field2 	 |
+		# 			 			|   ...		 |
+		#			 			 ------------
+		
+		object_size = len(class_.member_data) + 1
+
+		code = f"""
+		# new object (new_ident)
+		
+		li $v0, 9
+		li $a0, {object_size * 4}
+		syscall
+
+		sw $v0, {class_.address}($gp)
+		move $s0, $v0		# s0: address of object 
+
+		lw $t0, {class_.address}($gp) 	# t0: address of vtable
+		sw $t0, 0($s0)
+
+		addi $sp, $sp, -4
+		sw $s0, 0($sp)		# store object variable in stack
+
+		""".replace("\t\t", "\t")
+
+		stack.append(Variable(type_=type_))
+		return code
 
 
 	def variable(self, tree):
@@ -514,7 +599,7 @@ class Cgen(Interpreter):
 		
 		
 	def print_stmt(self, tree):
-		code = f"""\t\t\t### print stmt begin\n"""
+		code = f"""\t\t\t\t### print stmt begin\n"""
 
 		stack_size_initial = len(stack)
 

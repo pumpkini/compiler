@@ -47,8 +47,9 @@ class Function():
 	
 
 class Class():
-	def __init__(self, name, member_data= {}, member_functions={}):
+	def __init__(self, name, address, member_data= {}, member_functions={}):
 		self.name = name
+		self.address = address
 		self.member_data = {}
 		self.member_functions = {}
 		self.fields = {}
@@ -64,6 +65,13 @@ class Class():
 		self.fields = {**member_data, **member_functions}
 
 
+	def __str__(self) -> str:
+		return f"<C: {self.name} \
+			\n\tdata: {[v for v in self.member_data]}\
+			\n\tmethods: {[v for v in self.member_functions]}>"
+			# \n\tdata: {[v.__str__() for v in self.member_data.values()]}\
+			# \n\tmethods: {[v.__str__() for v in self.member_functions.values()]}>"
+
 
 class_stack = []
 
@@ -71,7 +79,7 @@ class SymbolTable():
 	symbol_tables = []
 
 	def __init__(self, parent=None):
-		self.classes = {}		# dict {name: Class}
+		# self.classes = {}		# dict {name: Class}
 		self.variables = {}     # dict {name: Variable}
 		self.functions = {}     # dict {name: Function}
 		self.types = {}			# dict {name: Type}
@@ -79,14 +87,14 @@ class SymbolTable():
 		SymbolTable.symbol_tables.append(self)
 
 
-	def find_class(self, name, tree=None, error=True):
-		if name in self.classes:
-			return self.classes[name]
-		if self.parent:
-			return self.parent.find_classes(name, tree, error)
-		if error:
-			raise SemanticError(f'Class {name} not found in this scope', tree=tree)
-		return None
+	# def find_class(self, name, tree=None, error=True):
+	# 	if name in self.classes:
+	# 		return self.classes[name]
+	# 	if self.parent:
+	# 		return self.parent.find_classes(name, tree, error)
+	# 	if error:
+	# 		raise SemanticError(f'Class {name} not found in this scope', tree=tree)
+	# 	return None
 
 
 	def find_var(self, name, tree=None, error=True):
@@ -139,12 +147,12 @@ class SymbolTable():
 		self.types[type_.name] = type_
 
 	
-	# TODO do we need this?
-	def add_class(self, class_:Class, tree=None):
-		if self.find_var(class_.name, error=False):
-			raise SemanticError('Class already exist in scope', tree=tree)
+	# # TODO do we need this?
+	# def add_class(self, class_:Class, tree=None):
+	# 	if self.find_var(class_.name, error=False):
+	# 		raise SemanticError('Class already exist in scope', tree=tree)
 		
-		self.classes[class_.name] = class_
+	# 	self.classes[class_.name] = class_
 
 
 	def get_index(self):
@@ -258,11 +266,14 @@ class SymbolTableVisitor(Interpreter):
 
 		# Add this to formals and symbol table
 		if function_class:
-			this = Variable(name="this",
+			this = Variable(
+				name="this",
 				type_=Type(
 					name=function_class.name,
 					class_ref=function_class
-				))
+				),
+				address= IncDataPointer(4)
+				)
 			formals = [this, *formals]
 			formals_symbol_table.add_var(this)
 		
@@ -410,11 +421,15 @@ class SymbolTableVisitor(Interpreter):
 		# name
 		class_name = tree.children[1].value
 
-		class_ = Class(class_name)
+		class_ = Class(
+			name= class_name,
+			address= IncDataPointer(4)	# this memory will be used for vtable
+		)
 
 		type_ = Type(
 			name=class_name,
-			class_ref=class_
+			class_ref=class_,
+			size=4
 		)
 
 		tree.symbol_table.add_type(type_)
@@ -441,6 +456,5 @@ class SymbolTableVisitor(Interpreter):
 			member_functions=class_symbol_table.functions
 		)
 
-		print(class_symbol_table)
 		
 
