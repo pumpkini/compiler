@@ -39,7 +39,23 @@ class Cgen(Interpreter):
 
 		code = "\n.text"
 
-		code += '\n'.join(self.visit_children(tree))
+		functions_subtrees = []
+		variables_subtrees = []
+		classes_subtrees = []
+		for decl in tree.children:
+			if decl.data == 'function_decl':
+				functions_subtrees.append(decl)
+			elif decl.data == 'variable':
+				variables_subtrees.append(decl)
+			elif decl.data == 'class_decl':
+				classes_subtrees.append(decl)
+			elif decl.data == 'interface_decl':
+				pass
+
+		# order matter !
+		for subtree in [*variables_subtrees, *classes_subtrees, *functions_subtrees]:
+			code += self.visit(subtree)
+		
 
 		# add main 
 		code += f"""
@@ -137,21 +153,26 @@ class Cgen(Interpreter):
 		return code
 	
 	# def	decl(self, tree):
-	# 	global global_variable_decl
 	# 	code = ''
+	# 	functions_subtrees = []
+	# 	variables_subtrees = []
+	# 	classes_subtrees = []
 	# 	for decl in tree.children:
+	# 		print("ziba", decl.data)
 	# 		if decl.data == 'function_decl':
-	# 			code += self.visit(decl)
-
+	# 			functions_subtrees.append(decl)
 	# 		elif decl.data == 'variable_decl':
-	# 			global_variable_decl += self.visit(decl)
-
+	# 			variables_subtrees.append(decl)
 	# 		elif decl.data == 'class_decl':
-	# 			code += self.visit(decl)
-
+	# 			classes_subtrees.append(decl)
 	# 		elif decl.data == 'interface_decl':
-	# 			# code += self.visit(decl
 	# 			pass
+	# 		print("what the hell")
+
+	# 	# order matter !
+	# 	for subtree in [*variables_subtrees, *classes_subtrees, *functions_subtrees]:
+	# 		print("DECL", subtree.data)
+	# 		code += self.visit(subtree)
 		
 	# 	return code
 	
@@ -696,6 +717,8 @@ class Cgen(Interpreter):
 		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
+		print("variable ", var_name)
+
 		#print("var", type_)
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
@@ -721,8 +744,9 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		expr_var = stack.pop()
 		
-		if lvalue_var.type_.name != expr_var.type_.name:
-			raise SemanticError(f"lvalue type '{lvalue_var.type_.name}' != expr type '{expr_var.type_.name}' in 'expr_assign'", tree=tree)
+		# if lvalue_var.type_.name != expr_var.type_.name or lvalue_var.type_.arr_type != expr_var.type_.arr_type:
+		if not lvalue_var.type_.are_equal(expr_var.type_):
+			raise SemanticError(f"lvalue type \n'{lvalue_var.type_}'\n != expr type \n'{expr_var.type_}'\n in 'expr_assign'", tree=tree)
 	
 	
 		# what stack state should look like:
