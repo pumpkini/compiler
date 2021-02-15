@@ -1151,7 +1151,59 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t","")
 
-		elif  var1.type_.name == "array":
+		elif  var1.type_.name == "array" and var1.type_.arr_type == "int" and var2.type_.arr_type == "int":
+			# lab_nul = IncLabels()
+			# code += f"""
+			# 	### add array[int]
+			# 	lw $s2, 0($sp)
+				
+			# 	move $a0, $s2
+			# 	move $s0, $ra 	#save ra
+			# 	jal string_length
+			# 	move $ra, $s0 	#restore ra
+
+			# 	move $s4, $v0	# s4: length of operand 2
+
+			# 	lw $s1, 4($sp)
+
+			# 	move $a0, $s1
+			# 	move $s0, $ra 	#save ra
+			# 	jal string_length
+			# 	move $ra, $s0 	#restore ra
+
+			# 	move $s3, $v0	# s3: length of operand 1
+
+			# 	add $t0, $s3, $s4
+			# 	addi $t0, $t0, 1	# t0: length(op1) + length(op2) + 1(for null termination)
+
+			# 	li $v0, 9		# syscall for allocate byte
+			# 	move $a0, $t0
+			# 	syscall
+
+			# 	move $s0, $v0		# s0: address of new string
+
+			#  	sw $s0, 4($sp) 
+			# 	addi $sp, $sp, 4 
+
+			# add_str_op1_{label_number}:
+			# 	lb $t1, 0($s1)
+			# 	beq $t1, $zero, add_str_op2_{label_number} 
+			# 	sb $t1, 0($s0)
+			# 	addi $s1, $s1, 1
+			# 	addi $s0, $s0, 1
+			# 	b add_str_op1_{label_number}
+
+			# add_str_op2_{label_number}:
+			# 	lb $t1, 0($s2)
+			# 	sb $t1, 0($s0)
+			# 	beq $t1, $zero, add_str_end_{label_number} 
+			# 	addi $s2, $s2, 1
+			# 	addi $s0, $s0, 1
+			# 	b add_str_op2_{label_number}
+			
+			# add_str_end_{label_number}
+
+			# """.replace("\t\t\t","")
 			# TODO
 			pass
 		else:
