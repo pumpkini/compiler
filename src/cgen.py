@@ -386,7 +386,24 @@ class Cgen(Interpreter):
 		class_ = variable.type_.class_ref
 		
 		if not class_:
+			#if variable.type_.name != "array":
 			raise SemanticError("Method call only allowed on objects", tree=tree)
+			#else:
+			#	function_name = tree.children[1].value
+			#	if function_name == "length":
+			#		code = self.visit(tree.children[0])
+			#		l_side_variable = stack.pop()
+			#		actuals_code = self.visit(tree.children[2])
+			#		if len(stack) != 0:
+			#			raise SemanticError("Length method cannot have arguments", tree=tree)
+			#		code += f"""
+			#				lw $t2, {l_side_variable.address}($gp)
+			#				addi $sp, $sp , -4
+			#				sw $t3, 0($sp)
+			#				""".replace("\t\t\t\t\t\t", "")
+			#		return code
+
+
 
 		function_name = tree.children[1].value
 		function, func_index = class_.get_func_and_index(function_name, tree=tree)
@@ -1440,6 +1457,9 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
+		print("? ? ? ", var1, var2)
+		print("ajib ", var2.type_.name, var1.type_.name)
+
 		if var1.type_.name == 'double' and var2.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1496,11 +1516,13 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t","")
 
 		elif var1.type_.name != 'array' and\
+			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
-			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string','null']) or\
-			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string','null'])):
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
 			# t0 operand 1
 			# t1 operand 2
+			
 			code += f"""
 					### equal
 					lw $t1, 0($sp)
@@ -1581,6 +1603,7 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t\t","")
 		elif var1.type_.name != 'array' and\
+			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
 			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
 			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
@@ -1912,7 +1935,6 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
-
 
 	def l_value_array(self, tree):
 		global from_assign_flag
