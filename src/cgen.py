@@ -1192,7 +1192,7 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t","")
 
 		elif var1.type_.name == "array" and var1.type_.arr_type.name == "int" and var2.type_.arr_type.name == "int":
-			print("here")
+			print("in add array")
 			lab_num = IncLabels()
 			code += f"""
 				### add array[int]
@@ -1237,13 +1237,12 @@ class Cgen(Interpreter):
 
 			add_array_change_{lab_num}:
 				addi $s0, $s0, 4
-				j add_array_op2_{lab_num}
 
 			add_array_op2_{lab_num}:
 				lw $t1, 0($s2)
 				sw $t1, 0($s0)
 				addi $s4, $s4, -1
-				beq $s4, $zero, add_array_op2_{lab_num} 
+				beq $s4, $zero, add_array_end_{lab_num} 
 				addi $s2, $s2, 4
 				addi $s0, $s0, 4
 				
@@ -1252,6 +1251,7 @@ class Cgen(Interpreter):
 			add_array_end_{lab_num}:
 
 			""".replace("\t\t\t","")
+
 			# TODO
 		else:
 			raise SemanticError('types are not suitable for \'add\'', tree=tree)
