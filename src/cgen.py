@@ -386,13 +386,16 @@ class Cgen(Interpreter):
 		class_ = variable.type_.class_ref
 		
 		if not class_:
-			if not variable.type_.name == "array":
+			if variable.type_.name != "array":
 				raise SemanticError("Method call only allowed on objects", tree=tree)
 			else:
 				function_name = tree.children[1].value
 				if function_name == "length":
 					code = self.visit(tree.children[0])
 					l_side_variable = stack.pop()
+					actuals_code = self.visit(tree.children[2])
+					if len(stack) != 0:
+						raise SemanticError("Length method cannot have arguments", tree=tree)
 					code += f"""					
 							lw $t2, {l_side_variable.address}($gp)
 							lw $t3, 0($t2)  # array size
