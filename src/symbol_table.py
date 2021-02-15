@@ -10,6 +10,26 @@ class Type():
 		self.arr_type = arr_type
 		self.class_ref = class_ref
 
+	def are_equal(self, type2):
+		if self.name != type2.name:
+			return False
+		if self.arr_type and not type2.arr_type or\
+			not self.arr_type and type2.arr_type:
+			return False
+
+		if self.class_ref and not type2.class_ref or\
+			not self.class_ref and type2.class_ref:
+			return False
+		
+		if self.class_ref and self.class_ref.name != type2.class_ref.name:
+			return False
+		
+		if self.arr_type:
+			return self.arr_type.are_equal(type2.arr_type)
+		
+		return True
+
+
 	def __str__(self) -> str:
 		return f"<T-{self.name}-{self.size}-arr:{self.arr_type}-cls:{None if not self.class_ref else self.class_ref.name}>"
 
