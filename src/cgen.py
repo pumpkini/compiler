@@ -1191,8 +1191,7 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t","")
 
-		elif var1.type_.name == "array" and var1.type_.arr_type.name == "int" and var2.type_.arr_type.name == "int":
-			print("in add array")
+		elif var1.type_.name == "array" and var1.type_.arr_type.name == var2.type_.arr_type.name:
 			lab_num = IncLabels()
 			code += f"""
 				### add array[int]
