@@ -386,7 +386,22 @@ class Cgen(Interpreter):
 		class_ = variable.type_.class_ref
 		
 		if not class_:
-			raise SemanticError("Method call only allowed on objects", tree=tree)
+			if not variable.type_.name == "array":
+				raise SemanticError("Method call only allowed on objects", tree=tree)
+			else:
+				function_name = tree.children[1].value
+				if function_name == "length":
+					code = self.visit(tree.children[0])
+					l_side_variable = stack.pop()
+					code += f"""					
+							lw $t2, {l_side_variable.address}($gp)
+							lw $t3, 0($t2)  # array size
+							addi $sp, $sp , -4
+							sw $t3, 0($sp)
+							""".replace("\t\t\t\t\t\t", "")
+					return code
+
+
 
 		function_name = tree.children[1].value
 		function, func_index = class_.get_func_and_index(function_name, tree=tree)
@@ -1860,7 +1875,6 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
-
 
 	def l_value_array(self, tree):
 		global from_assign_flag
