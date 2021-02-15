@@ -1541,11 +1541,10 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t\t","")
 
-		elif var1.type_.name != 'array' and\
-			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
+		elif (not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
-			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
-			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string', 'array']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string', 'array'])):
 			# t0 operand 1
 			# t1 operand 2
 			
@@ -1627,11 +1626,10 @@ class Cgen(Interpreter):
 				end_{labelcnt}:
 
 				""".replace("\t\t\t\t","")
-		elif var1.type_.name != 'array' and\
-			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
+		elif (not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
-			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
-			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string', 'array']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string', 'array'])):
 			# t0 operand 1
 			# t1 operand 2
 			code += f"""
