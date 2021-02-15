@@ -711,7 +711,7 @@ class Cgen(Interpreter):
 		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
-		print("var", type_)
+		#print("var", type_)
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
 
@@ -1403,6 +1403,9 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
+		print("? ? ? ", var1, var2)
+		print("ajib ", var2.type_.name, var1.type_.name)
+
 		if var1.type_.name == 'double' and var2.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1459,11 +1462,13 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t","")
 
 		elif var1.type_.name != 'array' and\
+			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
 			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
 			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
 			# t0 operand 1
 			# t1 operand 2
+			
 			code += f"""
 					### equal
 					lw $t1, 0($sp)
@@ -1544,6 +1549,7 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t\t","")
 		elif var1.type_.name != 'array' and\
+			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
 			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
 			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
