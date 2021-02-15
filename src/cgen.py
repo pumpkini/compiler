@@ -419,12 +419,14 @@ class Cgen(Interpreter):
 					#if len(stack) > 1:
 					#	raise SemanticError("Length method cannot have arguments", tree=tree)
 					code += f"""
+							addi $sp, $sp, 4
 							lw $t2, {l_side_variable.address}($gp)
 							lw $t3, 0($t2)
 							
 							addi $sp, $sp , -4
 							sw $t3, 0($sp)
 							""".replace("\t\t\t\t\t\t", "")
+					stack.append(Variable(type_=tree.symbol_table.find_type('int')))
 					return code
 
 
