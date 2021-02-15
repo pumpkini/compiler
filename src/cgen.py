@@ -5,7 +5,7 @@ from lark.visitors import Interpreter
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from symbol_table import Function, SymbolTable, Variable, Type, SymbolTableVisitor, ParentVisitor
+from symbol_table import Function, SymbolTable, Variable, Type, SymbolTableVisitor, ParentVisitor, TypeVisitor
 from utils import SemanticError
 
 
@@ -425,7 +425,8 @@ class Cgen(Interpreter):
 					return code
 				else:
 					raise SemanticError("No such function available for array", tree=tree)
-
+			
+			print(variable)
 			raise SemanticError("Method call only allowed on objects and array", tree=tree)
 
 		
@@ -739,7 +740,7 @@ class Cgen(Interpreter):
 
 		#print("var", type_)
 		# old type only have name  TODO keep eye on this
-		variable.type_ = type_
+		# variable.type_ = type_
 
 		variable_inits_code += f"""
 		# variable init
@@ -2279,6 +2280,8 @@ def generate_tac(code):
 		add_initial_types(tree.symbol_table)
 		SymbolTableVisitor().visit_topdown(tree)
 		print("SymbolTable visitor ended")
+		TypeVisitor().visit(tree)
+		print("TypeVisitor visitor ended")
 		mips_code = Cgen().visit(tree)
 
 	except SemanticError as err:

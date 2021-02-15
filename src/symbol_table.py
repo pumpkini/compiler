@@ -102,7 +102,7 @@ class Class():
 			return (self.member_data[name], index)
 
 		if error:
-			raise SemanticError(f'Function {name} not found in class {self.name}', tree=tree)
+			raise SemanticError(f'Variable {name} not found in class {self.name}', tree=tree)
 		return (None, None)
 
 	def __str__(self) -> str:
@@ -144,6 +144,7 @@ class SymbolTable():
 			return self.parent.find_var(name, tree, error)
 
 		if error:
+			print(tree.symbol_table)
 			raise SemanticError(f'Variable {name} not found in this scope', tree=tree)
 		return None
 
@@ -504,3 +505,28 @@ class SymbolTableVisitor(Interpreter):
 
 		
 
+
+class TypeVisitor(Interpreter):
+	def __default__(self, tree):
+		self.visit_children(tree)
+
+	def variable(self, tree):
+		global variable_inits_code
+
+		type_ = self.visit(tree.children[0])
+		var_name = tree.children[1].value
+		variable = tree.symbol_table.find_var(var_name, tree=tree)
+
+		variable.type_ = type_
+
+	def type(self, tree):
+		type_name = tree.children[0].value
+		type_ = tree.symbol_table.find_type(type_name, tree=tree)
+
+		return type_
+
+	def array_type(self, tree):
+		arr_type = self.visit(tree.children[0])
+		type_ = Type(name="array", arr_type=arr_type)
+
+		return type_
