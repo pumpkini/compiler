@@ -2212,10 +2212,11 @@ class Cgen(Interpreter):
 		expr_variabele = stack.pop() #there is variable in it? :O
 		
 		mem_type = self.visit(tree.children[1])
+		# if mem_type.name == "void":
+		# 	raise SemanticError("type of array can't be void", tree=tree)#TODO
+
 		type_ = Type("array", arr_type = mem_type)
 		
-		# if size < 0 or type(size) != "int":
-		# 	raise SemanticError("size of array should be a positive integer", tree=tree) #TODO 
 
 		l1 = IncLabels()
 		code = f"""
