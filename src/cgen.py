@@ -420,6 +420,8 @@ class Cgen(Interpreter):
 					#	raise SemanticError("Length method cannot have arguments", tree=tree)
 					code += f"""
 							lw $t2, {l_side_variable.address}($gp)
+							lw $t3, 0($t2)
+							
 							addi $sp, $sp , -4
 							sw $t3, 0($sp)
 							""".replace("\t\t\t\t\t\t", "")
