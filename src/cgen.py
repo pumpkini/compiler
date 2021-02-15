@@ -1250,8 +1250,6 @@ class Cgen(Interpreter):
 			add_array_end_{lab_num}:
 
 			""".replace("\t\t\t","")
-
-			# TODO
 		else:
 			raise SemanticError('types are not suitable for \'add\'', tree=tree)
 
@@ -2212,8 +2210,6 @@ class Cgen(Interpreter):
 		expr_variabele = stack.pop() #there is variable in it? :O
 		
 		mem_type = self.visit(tree.children[1])
-		# if mem_type.name == "void":
-		# 	raise SemanticError("type of array can't be void", tree=tree)#TODO
 
 		type_ = Type("array", arr_type = mem_type)
 		
@@ -2244,7 +2240,6 @@ class Cgen(Interpreter):
 				sw $s0, 0($sp)
 				
 				""".replace("\t\t\t","")
-		# TODO
 		
 		stack.append(Variable(type_=type_))
 		return code
