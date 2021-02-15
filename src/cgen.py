@@ -1168,61 +1168,54 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t","")
 
-		elif  var1.type_.name == "array" and var1.type_.arr_type == "int" and var2.type_.arr_type == "int":
-			# lab_nul = IncLabels()
-			# code += f"""
-			# 	### add array[int]
-			# 	lw $s2, 0($sp)
+		elif var1.type_.arr_type == "int" and var2.type_.arr_type == "int":
+			lab_num = IncLabels()
+			code += f"""
+				### add array[int]
+				lw $s2, 0($sp)
 				
-			# 	move $a0, $s2
-			# 	move $s0, $ra 	#save ra
-			# 	jal string_length
-			# 	move $ra, $s0 	#restore ra
+				move $s4, 0($s2) #s4: length array 2
 
-			# 	move $s4, $v0	# s4: length of operand 2
+				lw $s1, 4($sp)
 
-			# 	lw $s1, 4($sp)
+				move $s3, 0($s1)	# s3: length of array 1
 
-			# 	move $a0, $s1
-			# 	move $s0, $ra 	#save ra
-			# 	jal string_length
-			# 	move $ra, $s0 	#restore ra
+				add $t0, $s3, $s4
+				addi $t0, $t0, 1	# t0: length(arr1) + length(arr2) + 1(for null termination)
 
-			# 	move $s3, $v0	# s3: length of operand 1
+				li $v0, 9		# syscall for allocate byte
+				move $a0, $t0
+				syscall
 
-			# 	add $t0, $s3, $s4
-			# 	addi $t0, $t0, 1	# t0: length(op1) + length(op2) + 1(for null termination)
+				move $s0, $v0		# s0: address of new array
 
-			# 	li $v0, 9		# syscall for allocate byte
-			# 	move $a0, $t0
-			# 	syscall
+			 	sw $s0, 4($sp) 
+				addi $sp, $sp, 4 
 
-			# 	move $s0, $v0		# s0: address of new string
+				sw $t0, 0($s0)	# store size in first word
 
-			#  	sw $s0, 4($sp) 
-			# 	addi $sp, $sp, 4 
+			add_array_op1_{lab_num}:
+				lb $t1, 1($s1)
+				sb $t1, 1($s0)
+				beq $s3, $zero, add_array_op2_{lab_num} 
+				addi $s1, $s1, 1
+				addi $s0, $s0, 1
+				addi $s3, $s3, -1
+				b add_array_op1_{lab_num}
 
-			# add_str_op1_{label_number}:
-			# 	lb $t1, 0($s1)
-			# 	beq $t1, $zero, add_str_op2_{label_number} 
-			# 	sb $t1, 0($s0)
-			# 	addi $s1, $s1, 1
-			# 	addi $s0, $s0, 1
-			# 	b add_str_op1_{label_number}
-
-			# add_str_op2_{label_number}:
-			# 	lb $t1, 0($s2)
-			# 	sb $t1, 0($s0)
-			# 	beq $t1, $zero, add_str_end_{label_number} 
-			# 	addi $s2, $s2, 1
-			# 	addi $s0, $s0, 1
-			# 	b add_str_op2_{label_number}
+			add_array_op2_{lab_num}:
+				lb $t1, 1($s2)
+				sb $t1, 1($s0)
+				beq $s4, $zero, add_array_op2_{lab_num} 
+				addi $s2, $s2, 1
+				addi $s0, $s0, 1
+				addi $s4, $s4, -1
+				b add_str_op2_{lab_num}
 			
-			# add_str_end_{label_number}
+			add_array_end_{lab_num}
 
-			# """.replace("\t\t\t","")
+			""".replace("\t\t\t","")
 			# TODO
-			pass
 		else:
 			raise SemanticError('types are not suitable for \'add\'', tree=tree)
 
