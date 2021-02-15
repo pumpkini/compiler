@@ -5,7 +5,7 @@ from lark.visitors import Interpreter
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from symbol_table import Function, SymbolTable, Variable, Type, SymbolTableVisitor, ParentVisitor
+from symbol_table import Function, SymbolTable, Variable, Type, SymbolTableVisitor, ParentVisitor, TypeVisitor
 from utils import SemanticError
 
 
@@ -414,8 +414,8 @@ class Cgen(Interpreter):
 					l_side_variable = stack.pop()
 				
 					code += f"""
+							lw $t2, ($sp)
 							addi $sp, $sp, 4
-							lw $t2, {l_side_variable.address}($gp)
 							lw $t3, 0($t2)
 							
 							addi $sp, $sp , -4
@@ -425,7 +425,8 @@ class Cgen(Interpreter):
 					return code
 				else:
 					raise SemanticError("No such function available for array", tree=tree)
-
+			
+			print(variable)
 			raise SemanticError("Method call only allowed on objects and array", tree=tree)
 
 		
@@ -739,7 +740,7 @@ class Cgen(Interpreter):
 
 		#print("var", type_)
 		# old type only have name  TODO keep eye on this
-		variable.type_ = type_
+		# variable.type_ = type_
 
 		variable_inits_code += f"""
 		# variable init
@@ -1540,11 +1541,10 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t\t","")
 
-		elif var1.type_.name != 'array' and\
-			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
+		elif (not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
-			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
-			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string', 'array']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string', 'array'])):
 			# t0 operand 1
 			# t1 operand 2
 			
@@ -1626,11 +1626,10 @@ class Cgen(Interpreter):
 				end_{labelcnt}:
 
 				""".replace("\t\t\t\t","")
-		elif var1.type_.name != 'array' and\
-			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
+		elif (not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
-			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
-			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string', 'array']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string', 'array'])):
 			# t0 operand 1
 			# t1 operand 2
 			code += f"""
@@ -1988,9 +1987,11 @@ class Cgen(Interpreter):
 
 		code += f""" 
 				lw $t1, 0($sp) #index
-				addi $sp, $sp, 8
+				addi $sp, $sp, 4
 
-				lw $t2, {l_side_variable.address}($gp)
+				#lw $t2, {l_side_variable.address}($gp)
+				lw $t2, 0($sp) #array addr
+				addi $sp, $sp, 4
 				lw $t3, 0($t2) 	#array size
 
 				addi $t1, $t1, 1 # add one to index ('cause of size)
@@ -2279,6 +2280,8 @@ def generate_tac(code):
 		add_initial_types(tree.symbol_table)
 		SymbolTableVisitor().visit_topdown(tree)
 		print("SymbolTable visitor ended")
+		TypeVisitor().visit(tree)
+		print("TypeVisitor visitor ended")
 		mips_code = Cgen().visit(tree)
 
 	except SemanticError as err:
