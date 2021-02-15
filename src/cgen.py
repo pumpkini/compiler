@@ -1965,8 +1965,10 @@ class Cgen(Interpreter):
 		if from_assign_flag:
 			store_addr_code = """
 			sw $t2, -4($sp)
-			add $sp, $sp, -4
+			addi $sp, $sp, -4
 			"""
+
+			print("STORE")
 
 		from_assign_flag = False
 
@@ -1984,11 +1986,10 @@ class Cgen(Interpreter):
 		if l_side_variable.type_.name != 'array':
 			raise SemanticError('left side type is not array', tree = tree)
 
-		l1 = IncLabels()
-
+		print("inja", l_side_variable, store_addr_code)
 		code += f""" 
 				lw $t1, 0($sp) #index
-				addi $sp, $sp, 4
+				addi $sp, $sp, 8
 
 				lw $t2, {l_side_variable.address}($gp)
 				lw $t3, 0($t2) 	#array size
@@ -2007,7 +2008,8 @@ class Cgen(Interpreter):
 
 				lw $t0, 0($t2)		#t0: value khooneye arraye ke mikhaim
 				sw $t0, -4($sp)
-				add $sp, $sp, -4
+				addi $sp, $sp, -4
+
 
 				""".replace("\t\t\t", "")
 				
@@ -2313,7 +2315,7 @@ if __name__ == "__main__":
 		code = input_file.read()
 	code = generate_tac(code)
 	print("#### code ")
-	print(code)
+	#print(code)
 
 		
 	output_file = open("../tmp/res.mips", "w")
