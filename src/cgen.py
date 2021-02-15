@@ -1205,6 +1205,8 @@ class Cgen(Interpreter):
 				lw $s3, 0($s1)	# s3: length of array 1
 
 				add $t0, $s3, $s4
+				add $t1, $s3, $s4
+
 				addi $t0, $t0, 1	# t0: length(arr1) + length(arr2) + 1(for size)
 				mul $t0, $t0, 4
 
@@ -1217,7 +1219,7 @@ class Cgen(Interpreter):
 			 	sw $s0, 4($sp) 
 				addi $sp, $sp, 4 
 
-				sw $t0, 0($s0)	# store size in first word
+				sw $t1, 0($s0)	# store size in first word
 
 				addi $s1, $s1, 4
 				addi $s0, $s0, 4
@@ -1227,11 +1229,15 @@ class Cgen(Interpreter):
 				lw $t1, 0($s1)
 				sw $t1, 0($s0)
 				addi $s3, $s3, -1
-				beq $s3, $zero, add_array_op2_{lab_num} 
+				beq $s3, $zero, add_array_change_{lab_num} 
 				addi $s1, $s1, 4
 				addi $s0, $s0, 4
 				
 				j add_array_op1_{lab_num}
+
+			add_array_change_{lab_num}:
+				addi $s0, $s0, 4
+				j add_array_op2_{lab_num}
 
 			add_array_op2_{lab_num}:
 				lw $t1, 0($s2)
