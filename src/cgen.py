@@ -1237,7 +1237,7 @@ class Cgen(Interpreter):
 				addi $s2, $s2, 1
 				addi $s0, $s0, 1
 				addi $s4, $s4, -1
-				b add_str_op2_{lab_num}
+				b add_array_op2_{lab_num}
 			
 			add_array_end_{lab_num}:
 
