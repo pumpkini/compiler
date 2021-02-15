@@ -1117,7 +1117,6 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-
 		if var1.type_.name != var2.type_.name:
 			raise SemanticError('var1 type != var2 type in \'add\'', tree=tree)
 		
@@ -1195,20 +1194,21 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t","")
 
-		elif var1.type_.arr_type == "int" and var2.type_.arr_type == "int":
+		elif var1.type_.name == "array" and var1.type_.arr_type.name == "int" and var2.type_.arr_type.name == "int":
+			print("here")
 			lab_num = IncLabels()
 			code += f"""
 				### add array[int]
 				lw $s2, 0($sp)
 				
-				move $s4, 0($s2) #s4: length array 2
+				lw $s4, 0($s2) 	#s4: length array 2
 
 				lw $s1, 4($sp)
 
-				move $s3, 0($s1)	# s3: length of array 1
+				lw $s3, 0($s1)	# s3: length of array 1
 
 				add $t0, $s3, $s4
-				addi $t0, $t0, 1	# t0: length(arr1) + length(arr2) + 1(for null termination)
+				addi $t0, $t0, 1	# t0: length(arr1) + length(arr2) + 1(for size)
 
 				li $v0, 9		# syscall for allocate byte
 				move $a0, $t0
@@ -1221,9 +1221,12 @@ class Cgen(Interpreter):
 
 				sw $t0, 0($s0)	# store size in first word
 
+				addi $s1, $s1, 1
+				addi $s0, $s0, 1
+
 			add_array_op1_{lab_num}:
-				lb $t1, 1($s1)
-				sb $t1, 1($s0)
+				lb $t1, 0($s1)
+				sb $t1, 0($s0)
 				beq $s3, $zero, add_array_op2_{lab_num} 
 				addi $s1, $s1, 1
 				addi $s0, $s0, 1
@@ -1239,7 +1242,7 @@ class Cgen(Interpreter):
 				addi $s4, $s4, -1
 				b add_str_op2_{lab_num}
 			
-			add_array_end_{lab_num}
+			add_array_end_{lab_num}:
 
 			""".replace("\t\t\t","")
 			# TODO
