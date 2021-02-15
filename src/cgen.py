@@ -1388,6 +1388,9 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
+		print("? ? ? ", var1, var2)
+		print("ajib ", var2.type_.name, var1.type_.name)
+
 		if var1.type_.name == 'double' and var2.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1444,11 +1447,13 @@ class Cgen(Interpreter):
 				""".replace("\t\t\t\t","")
 
 		elif var1.type_.name != 'array' and\
+			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
-			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string','null']) or\
-			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string','null'])):
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
 			# t0 operand 1
 			# t1 operand 2
+			
 			code += f"""
 					### equal
 					lw $t1, 0($sp)
@@ -1529,6 +1534,7 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t\t","")
 		elif var1.type_.name != 'array' and\
+			(not (var1.type_.name == 'null' and var2.type_.name == 'null')) and\
 			(var1.type_.name == var2.type_.name or\
 			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
 			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
