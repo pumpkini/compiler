@@ -696,7 +696,7 @@ class Cgen(Interpreter):
 		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
-		print("var", type_)
+		#print("var", type_)
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
 
@@ -1445,8 +1445,8 @@ class Cgen(Interpreter):
 
 		elif var1.type_.name != 'array' and\
 			(var1.type_.name == var2.type_.name or\
-			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string']) or\
-			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string'])):
+			(var1.type_.name == 'null' and var2.type_.name not in ['double', 'int', 'bool', 'string','null']) or\
+			(var2.type_.name == 'null' and var1.type_.name not in ['double', 'int', 'bool', 'string','null'])):
 			# t0 operand 1
 			# t1 operand 2
 			code += f"""
