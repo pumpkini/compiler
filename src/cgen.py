@@ -414,8 +414,8 @@ class Cgen(Interpreter):
 					l_side_variable = stack.pop()
 				
 					code += f"""
+							lw $t2, ($sp)
 							addi $sp, $sp, 4
-							lw $t2, {l_side_variable.address}($gp)
 							lw $t3, 0($t2)
 							
 							addi $sp, $sp , -4
@@ -1987,9 +1987,11 @@ class Cgen(Interpreter):
 
 		code += f""" 
 				lw $t1, 0($sp) #index
-				addi $sp, $sp, 8
+				addi $sp, $sp, 4
 
-				lw $t2, {l_side_variable.address}($gp)
+				#lw $t2, {l_side_variable.address}($gp)
+				lw $t2, 0($sp) #array addr
+				addi $sp, $sp, 4
 				lw $t3, 0($t2) 	#array size
 
 				addi $t1, $t1, 1 # add one to index ('cause of size)
