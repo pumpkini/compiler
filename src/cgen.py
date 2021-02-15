@@ -428,6 +428,8 @@ class Cgen(Interpreter):
 							""".replace("\t\t\t\t\t\t", "")
 					stack.append(Variable(type_=tree.symbol_table.find_type('int')))
 					return code
+				else:
+					raise SemanticError("No such function available for array", tree=tree)
 
 
 
