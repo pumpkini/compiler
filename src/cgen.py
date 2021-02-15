@@ -405,19 +405,14 @@ class Cgen(Interpreter):
 		variable = stack.pop()
 		
 		class_ = variable.type_.class_ref
+		function_name = tree.children[1].value
 		
 		if not class_:
-			if variable.type_.name != "array":
-				raise SemanticError("Method call only allowed on objects", tree=tree)
-			else:
-				function_name = tree.children[1].value
+			if variable.type_.name == "array":
 				if function_name == "length":
 					code = self.visit(tree.children[0])
 					l_side_variable = stack.pop()
-					#self.visit(tree.children[2])
-					#print("STACK,", stack)
-					#if len(stack) > 1:
-					#	raise SemanticError("Length method cannot have arguments", tree=tree)
+				
 					code += f"""
 							addi $sp, $sp, 4
 							lw $t2, {l_side_variable.address}($gp)
@@ -431,9 +426,9 @@ class Cgen(Interpreter):
 				else:
 					raise SemanticError("No such function available for array", tree=tree)
 
+			raise SemanticError("Method call only allowed on objects and array", tree=tree)
 
-
-		function_name = tree.children[1].value
+		
 		function, func_index = class_.get_func_and_index(function_name, tree=tree)
 
 		stack_size_initial = len(stack)
@@ -741,7 +736,6 @@ class Cgen(Interpreter):
 		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
-		print("variable ", var_name)
 
 		#print("var", type_)
 		# old type only have name  TODO keep eye on this
@@ -890,7 +884,6 @@ class Cgen(Interpreter):
 
 		
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
-		print(variable)
 		stack.append(variable)
 
 
@@ -1481,8 +1474,6 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-		print("? ? ? ", var1, var2)
-		print("ajib ", var2.type_.name, var1.type_.name)
 
 		if var1.type_.name == 'double' and var2.type_.name == 'double':
 			# f4 operand 1
@@ -1572,7 +1563,6 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		var2 = stack.pop()
 
-		print(var1, var2)
 		if var1.type_.name == 'double' and var2.type_.name == 'double':
 			# f4 operand 1
 			# f2 operand 2
@@ -1970,8 +1960,6 @@ class Cgen(Interpreter):
 			addi $sp, $sp, -4
 			"""
 
-			print("STORE")
-
 		from_assign_flag = False
 
 
@@ -1988,7 +1976,6 @@ class Cgen(Interpreter):
 		if l_side_variable.type_.name != 'array':
 			raise SemanticError('left side type is not array', tree = tree)
 
-		print("inja", l_side_variable, store_addr_code)
 		code += f""" 
 				lw $t1, 0($sp) #index
 				addi $sp, $sp, 8
