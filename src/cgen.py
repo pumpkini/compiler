@@ -426,6 +426,8 @@ class Cgen(Interpreter):
 							sw $t3, 0($sp)
 							""".replace("\t\t\t\t\t\t", "")
 					return code
+				else:
+					raise SemanticError("No such function available for array", tree=tree)
 
 
 
