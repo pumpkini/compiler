@@ -1196,16 +1196,17 @@ class Cgen(Interpreter):
 			lab_num = IncLabels()
 			code += f"""
 				### add array[int]
-				lw $s2, 0($sp)
+				lw $s2, 0($sp) #s2: address of array 2
 				
 				lw $s4, 0($s2) 	#s4: length array 2
 
-				lw $s1, 4($sp)
+				lw $s1, 4($sp) #s1: address of array 1
 
 				lw $s3, 0($s1)	# s3: length of array 1
 
 				add $t0, $s3, $s4
 				addi $t0, $t0, 1	# t0: length(arr1) + length(arr2) + 1(for size)
+				mul $t0, $t0, 4
 
 				li $v0, 9		# syscall for allocate byte
 				move $a0, $t0
@@ -1218,26 +1219,29 @@ class Cgen(Interpreter):
 
 				sw $t0, 0($s0)	# store size in first word
 
-				addi $s1, $s1, 1
-				addi $s0, $s0, 1
+				addi $s1, $s1, 4
+				addi $s0, $s0, 4
+				addi $s2, $s2, 4
 
 			add_array_op1_{lab_num}:
-				lb $t1, 0($s1)
-				sb $t1, 0($s0)
-				beq $s3, $zero, add_array_op2_{lab_num} 
-				addi $s1, $s1, 1
-				addi $s0, $s0, 1
+				lw $t1, 0($s1)
+				sw $t1, 0($s0)
 				addi $s3, $s3, -1
-				b add_array_op1_{lab_num}
+				beq $s3, $zero, add_array_op2_{lab_num} 
+				addi $s1, $s1, 4
+				addi $s0, $s0, 4
+				
+				j add_array_op1_{lab_num}
 
 			add_array_op2_{lab_num}:
-				lb $t1, 1($s2)
-				sb $t1, 1($s0)
-				beq $s4, $zero, add_array_op2_{lab_num} 
-				addi $s2, $s2, 1
-				addi $s0, $s0, 1
+				lw $t1, 0($s2)
+				sw $t1, 0($s0)
 				addi $s4, $s4, -1
-				b add_array_op2_{lab_num}
+				beq $s4, $zero, add_array_op2_{lab_num} 
+				addi $s2, $s2, 4
+				addi $s0, $s0, 4
+				
+				j add_array_op2_{lab_num}
 			
 			add_array_end_{lab_num}:
 
