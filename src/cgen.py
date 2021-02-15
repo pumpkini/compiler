@@ -39,7 +39,23 @@ class Cgen(Interpreter):
 
 		code = "\n.text"
 
-		code += '\n'.join(self.visit_children(tree))
+		functions_subtrees = []
+		variables_subtrees = []
+		classes_subtrees = []
+		for decl in tree.children:
+			if decl.data == 'function_decl':
+				functions_subtrees.append(decl)
+			elif decl.data == 'variable':
+				variables_subtrees.append(decl)
+			elif decl.data == 'class_decl':
+				classes_subtrees.append(decl)
+			elif decl.data == 'interface_decl':
+				pass
+
+		# order matter !
+		for subtree in [*variables_subtrees, *classes_subtrees, *functions_subtrees]:
+			code += self.visit(subtree)
+		
 
 		# add main 
 		code += f"""
@@ -137,21 +153,26 @@ class Cgen(Interpreter):
 		return code
 	
 	# def	decl(self, tree):
-	# 	global global_variable_decl
 	# 	code = ''
+	# 	functions_subtrees = []
+	# 	variables_subtrees = []
+	# 	classes_subtrees = []
 	# 	for decl in tree.children:
+	# 		print("ziba", decl.data)
 	# 		if decl.data == 'function_decl':
-	# 			code += self.visit(decl)
-
+	# 			functions_subtrees.append(decl)
 	# 		elif decl.data == 'variable_decl':
-	# 			global_variable_decl += self.visit(decl)
-
+	# 			variables_subtrees.append(decl)
 	# 		elif decl.data == 'class_decl':
-	# 			code += self.visit(decl)
-
+	# 			classes_subtrees.append(decl)
 	# 		elif decl.data == 'interface_decl':
-	# 			# code += self.visit(decl
 	# 			pass
+	# 		print("what the hell")
+
+	# 	# order matter !
+	# 	for subtree in [*variables_subtrees, *classes_subtrees, *functions_subtrees]:
+	# 		print("DECL", subtree.data)
+	# 		code += self.visit(subtree)
 		
 	# 	return code
 	
@@ -714,6 +735,8 @@ class Cgen(Interpreter):
 		var_name = tree.children[1].value
 		variable = tree.symbol_table.find_var(var_name, tree=tree)
 
+		print("variable ", var_name)
+
 		#print("var", type_)
 		# old type only have name  TODO keep eye on this
 		variable.type_ = type_
@@ -739,8 +762,9 @@ class Cgen(Interpreter):
 		code += self.visit(tree.children[1])
 		expr_var = stack.pop()
 		
-		if lvalue_var.type_.name != expr_var.type_.name:
-			raise SemanticError(f"lvalue type '{lvalue_var.type_.name}' != expr type '{expr_var.type_.name}' in 'expr_assign'", tree=tree)
+		# if lvalue_var.type_.name != expr_var.type_.name or lvalue_var.type_.arr_type != expr_var.type_.arr_type:
+		if not lvalue_var.type_.are_equal(expr_var.type_):
+			raise SemanticError(f"lvalue type \n'{lvalue_var.type_}'\n != expr type \n'{expr_var.type_}'\n in 'expr_assign'", tree=tree)
 	
 	
 		# what stack state should look like:
@@ -1169,9 +1193,54 @@ class Cgen(Interpreter):
 
 				""".replace("\t\t\t","")
 
-		elif  var1.type_.name == "array":
+		elif var1.type_.arr_type == "int" and var2.type_.arr_type == "int":
+			lab_num = IncLabels()
+			code += f"""
+				### add array[int]
+				lw $s2, 0($sp)
+				
+				move $s4, 0($s2) #s4: length array 2
+
+				lw $s1, 4($sp)
+
+				move $s3, 0($s1)	# s3: length of array 1
+
+				add $t0, $s3, $s4
+				addi $t0, $t0, 1	# t0: length(arr1) + length(arr2) + 1(for null termination)
+
+				li $v0, 9		# syscall for allocate byte
+				move $a0, $t0
+				syscall
+
+				move $s0, $v0		# s0: address of new array
+
+			 	sw $s0, 4($sp) 
+				addi $sp, $sp, 4 
+
+				sw $t0, 0($s0)	# store size in first word
+
+			add_array_op1_{lab_num}:
+				lb $t1, 1($s1)
+				sb $t1, 1($s0)
+				beq $s3, $zero, add_array_op2_{lab_num} 
+				addi $s1, $s1, 1
+				addi $s0, $s0, 1
+				addi $s3, $s3, -1
+				b add_array_op1_{lab_num}
+
+			add_array_op2_{lab_num}:
+				lb $t1, 1($s2)
+				sb $t1, 1($s0)
+				beq $s4, $zero, add_array_op2_{lab_num} 
+				addi $s2, $s2, 1
+				addi $s0, $s0, 1
+				addi $s4, $s4, -1
+				b add_str_op2_{lab_num}
+			
+			add_array_end_{lab_num}
+
+			""".replace("\t\t\t","")
 			# TODO
-			pass
 		else:
 			raise SemanticError('types are not suitable for \'add\'', tree=tree)
 
