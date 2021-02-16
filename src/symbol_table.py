@@ -255,10 +255,10 @@ class SymbolTable():
 			raise SemanticError(f'Function {name} not found in this scope', tree=tree)
 		return None
 
-	def find_type(self, name, tree=None, error=True):
+	def find_type(self, name, tree=None, error=True, depth_one=False):
 		if name in self.types:
 			return self.types[name]
-		if self.parent:
+		if self.parent and not depth_one:
 			return self.parent.find_type(name, tree, error)
 
 		if error:
