@@ -639,6 +639,17 @@ class Cgen(Interpreter):
 				""".replace("\t\t", "")
 			
 		
+
+		all_values = []
+		for now_class in all_parent_classes[::-1]:
+			for v in now_class.member_data.values():
+				for val in all_values:
+					if val.name == v.name:
+						raise SemanticError("variables can't be overriden", tree=tree)
+				all_funcs.append(v)
+			
+
+
 		class_stack.pop()
 
 		return code
