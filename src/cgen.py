@@ -623,6 +623,9 @@ class Cgen(Interpreter):
 							if func.formals[i+1].type_.name != f.formals[i+1].type_.name:
 								print(f.formals[i+1].type_.name, " ", func.formals[i+1].type_.name)
 								raise SemanticError("override function should have same arguments", tree=tree)
+						if func.return_type.name != f.return_type.name:
+							print("different return types :", func.return_type.name, f.return_type.name)
+							raise SemanticError("override function should have same return types", tree=tree)
 				all_funcs.append(f)
 				func_label = f.label
 				_, index = now_class.get_func_and_index(f.name)
