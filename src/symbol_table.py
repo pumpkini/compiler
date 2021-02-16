@@ -146,9 +146,9 @@ class Class():
 
 	def get_func_and_index(self, name, error=True, tree=None):
 		if self.parent:
-			res = self.parent.get_func_and_index(name, error=False)
-			if res:
-				return res
+			f, i = self.parent.get_func_and_index(name, error=False)
+			if f:
+				return (f, i)
 		
 		if name in self.member_functions:
 			index = list(self.member_functions.keys()).index(name)
@@ -156,13 +156,13 @@ class Class():
 		
 		if error:
 			raise SemanticError(f'Function {name} not found in class {self.name}', tree=tree)
-		return None
+		return (None, None)
 
 	def get_var_and_index(self, name, error=True, tree=None):
 		if self.parent:
-			res = self.parent.get_var_and_index(name, error=False)
-			if res:
-				return res
+			f, i = self.parent.get_var_and_index(name, error=False)
+			if f:
+				return (f,i)
 		
 		if name in self.member_data:
 			index = list(self.member_data.keys()).index(name)
@@ -170,7 +170,7 @@ class Class():
 		
 		if error:
 			raise SemanticError(f'Variable {name} not found in class {self.name}', tree=tree)
-		return None
+		return (None, None)
 
 	def __str__(self) -> str:
 		return f"<C: {self.name}\

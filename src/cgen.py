@@ -627,7 +627,8 @@ class Cgen(Interpreter):
 				la $t0, {func_label}
 				sw $t0, {index * 4}($s0)
 				""".replace("\t\t", "")
-					
+			
+		
 		class_stack.pop()
 
 		return code
