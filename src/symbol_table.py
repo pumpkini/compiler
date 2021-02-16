@@ -135,7 +135,6 @@ class Class():
 
 	def can_upcast_to(self, class2):
 		# check if self can upcat to class2
-		print("CCC", self, class2)
 		if self.name == class2.name:
 			return True
 		
@@ -243,7 +242,6 @@ class SymbolTable():
 			return self.parent.find_var(name, tree, error)
 
 		if error:
-			print(tree.symbol_table)
 			raise SemanticError(f'Variable {name} not found in this scope', tree=tree)
 		return None
 
@@ -269,18 +267,19 @@ class SymbolTable():
 
 
 	def add_var(self, var:Variable, tree=None):
-		if self.find_var(var.name, error=False):
+		if self.find_var(var.name, error=False, depth_one=True):
+			print(tree.symbol_table, var.name)
 			raise SemanticError('Variable already exist in scope', tree=tree)
 		
 		self.variables[var.name] = var
 
-	def add_func(self, func:Function, tree=None):
+	def add_func(self, func:Function, tree=None, depth_one=True):
 		if self.find_func(func.name, error=False):
 			raise SemanticError('Function already exist in scope', tree=tree)
 
 		self.functions[func.name] = func
 
-	def add_type(self, type_:Type, tree=None):
+	def add_type(self, type_:Type, tree=None, depth_one=True):
 		if self.find_type(type_.name, error=False):
 			raise SemanticError('Type already  exist in scope', tree=tree)
 
