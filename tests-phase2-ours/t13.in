@@ -1,5 +1,0 @@
-void f(){
-	int t;
-	int m;
-	print(m,t,);
-}

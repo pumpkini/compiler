@@ -1,7 +1,0 @@
-void main () {
-    2;
-    true;
-    "string";
-    null;
-    1.5E5;
-}
