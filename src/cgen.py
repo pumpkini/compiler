@@ -792,7 +792,7 @@ class Cgen(Interpreter):
 		expr_var = stack.pop()
 		
 		# if lvalue_var.type_.name != expr_var.type_.name or lvalue_var.type_.arr_type != expr_var.type_.arr_type:
-		if not lvalue_var.type_.are_equal(expr_var.type_):
+		if not expr_var.type_.are_equal_with_upcast(lvalue_var.type_):
 			raise SemanticError(f"lvalue type \n'{lvalue_var.type_}'\n != expr type \n'{expr_var.type_}'\n in 'expr_assign'", tree=tree)
 	
 	

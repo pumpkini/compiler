@@ -1,3 +1,4 @@
+from lark.lexer import Token
 from utils import SemanticError
 from lark.visitors import  Interpreter, Visitor_Recursive, Visitor
 from lark import Tree
@@ -22,6 +23,27 @@ class Type():
 			return False
 		
 		if self.class_ref and self.class_ref.name != type2.class_ref.name:
+			return False
+		
+		if self.arr_type:
+			return self.arr_type.are_equal(type2.arr_type)
+		
+		return True
+
+	
+	def are_equal_with_upcast(self, type2):
+		# return true if self can upcast to type2
+		if self.name != type2.name:
+			return False
+		if self.arr_type and not type2.arr_type or\
+			not self.arr_type and type2.arr_type:
+			return False
+
+		if self.class_ref and not type2.class_ref or\
+			not self.class_ref and type2.class_ref:
+			return False
+		
+		if self.class_ref and not self.class_ref.can_upcast_to(type2.class_ref):
 			return False
 		
 		if self.arr_type:
@@ -69,15 +91,38 @@ class Function():
 	
 
 class Class():
-	def __init__(self, number, name, address, member_data= {}, member_functions={}):
+	def __init__(self, name, address, member_data= {}, member_functions={}, parent=None):
 		self.name = name
 		self.address = address
 		self.member_data = {}
 		self.member_functions = {}
 		self.fields = {}
 		self.access_modes = {}
-		self.number = number
+		self.parent = parent
 		self.set_fields(member_data, member_functions)
+	
+
+	def can_upcast_to(self, class2):
+		# check if self can upcat to class2
+		print("CCC", self, class2)
+		if self.name == class2.name:
+			return True
+		
+		if not self.parent:
+			return False
+		
+		return self.parent.can_upcast_to(class2)
+
+
+	def get_func_index_offset(self):
+		if not self.parent:
+			return 0
+		return self.parent.get_func_index_offset() + len(self.parent.member_functions)
+	
+	def get_var_index_offset(self):
+		if not self.parent:
+			return 0
+		return self.parent.get_var_index_offset() + len(self.parent.member_data)
 	
 	def set_fields(self, member_data, member_functions):
 		self.member_data = member_data
@@ -92,7 +137,7 @@ class Class():
 	def get_func_and_index(self, name, error=True, tree=None):
 		if name in self.member_functions:
 			index = list(self.member_functions.keys()).index(name)
-			return (self.member_functions[name], index)
+			return (self.member_functions[name], self.get_func_index_offset() + index)
 
 		if error:
 			raise SemanticError(f'Function {name} not found in class {self.name}', tree=tree)
@@ -101,7 +146,7 @@ class Class():
 	def get_var_and_index(self, name, error=True, tree=None):
 		if name in self.member_data:
 			index = list(self.member_data.keys()).index(name)
-			return (self.member_data[name], index)
+			return (self.member_data[name], self.get_var_index_offset() + index)
 
 		if error:
 			raise SemanticError(f'Variable {name} not found in class {self.name}', tree=tree)
@@ -510,12 +555,16 @@ class SymbolTableVisitor(Interpreter):
 		# name
 		class_name = tree.children[1].value
 
+		parent_name = None
+		if isinstance(tree.children[2], Token) and tree.children[2].value == 'extends':
+			parent_name = tree.children[3].value
+
+
 		class_ = Class(
-			number = get_next_prime(),
 			name= class_name,
-			address= IncDataPointer(4)	# this memory will be used for vtable
+			address= IncDataPointer(4),	# this memory will be used for vtable
+			parent=parent_name
 		)
-		print(class_.number)
 
 		type_ = Type(
 			name=class_name,
@@ -530,20 +579,13 @@ class SymbolTableVisitor(Interpreter):
 
 		class_stack.append(class_)
 		
-		for subtree in tree.children[::-1]:
+		for subtree in tree.children:
 			if isinstance(subtree, Tree) and subtree.data == 'field':
 				subtree.symbol_table = class_symbol_table
 				initial_stack_len = len(stack)
 				self.visit(subtree)
 				while initial_stack_len < len(stack):
 					stack.pop()
-			elif isinstance(subtree, Tree) and subtree.data == 'IDENT':
-				subtree.symbol_table = class_symbol_table
-				class_type = self.visit(subtree)
-				class_symbol_table.variables.update(class_type.member_data)
-				class_symbol_table.functions.update(class_type.member_functions)
-			else:
-				break
 
 		class_stack.pop()
 
@@ -597,3 +639,22 @@ class TypeVisitor(Interpreter):
 		type_ = Type(name="array", arr_type=arr_type)
 
 		return type_
+
+
+	def class_decl(self, tree):
+
+		class_name = tree.children[1].value
+
+		class_ = tree.symbol_table.find_type(class_name).class_ref
+		
+		if class_.parent:
+			parent_class = tree.symbol_table.find_type(class_.parent).class_ref
+			if not parent_class:
+				raise SemanticError("Can only extend from classes")
+			
+			class_.parent = parent_class
+		
+		for child in tree.children:
+			if isinstance(child, Tree):
+				self.visit(child)
+		
