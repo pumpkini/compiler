@@ -25,6 +25,9 @@ cd $TEST_DIRECTORY
 prefix="t" ;
 dirlist=(`ls ${prefix}*.d`) ;
 
+rm wrong-tests.txt
+touch wrong-tests.txt
+
 NUMBER_OF_PASSED=0
 NUMBER_OF_FAILED=0
 cd ../
@@ -59,12 +62,14 @@ do
 		    ((NUMBER_OF_PASSED++))
 		    echo "++++ test passed"
 		else
+            echo $filename >> wrong-tests.txt
 		    ((NUMBER_OF_FAILED++))
 		    echo "---- test failed !"
 		echo
 		fi
     	fi 
     else
+        echo $filename >> wrong-tests.txt
         echo "Code did not execute successfuly!"
         ((NUMBER_OF_FAILED++))
     fi
@@ -76,6 +81,7 @@ done
 echo "Passed : $NUMBER_OF_PASSED"
 echo "Failed : $NUMBER_OF_FAILED"
 
+cat wrong-tests.txt
 
 if [ "$#" -eq 1 ]; then
     zero=0;
@@ -84,3 +90,4 @@ if [ "$#" -eq 1 ]; then
     fi
     exit 1;
 fi
+

@@ -324,7 +324,6 @@ class Cgen(Interpreter):
 				while len(stack) > stack_size_initial:
 					formal = function.formals[i]
 					arg = stack.pop()
-					print("PPPP", arg.type_, formal.type_)
 					if not arg.type_.are_equal_with_upcast(formal.type_):
 						raise SemanticError(f"function '{function_name}' arguments not matched with formals", tree=tree)
 					i -= 1
@@ -475,14 +474,12 @@ class Cgen(Interpreter):
 		while len(stack) > stack_size_initial:
 			formal = function.formals[i]
 			arg = stack.pop()
-			print("ffff", arg, formal, arg.type_.are_equal_with_upcast(formal.type_))
 			if not arg.type_.are_equal_with_upcast(formal.type_):
 				raise SemanticError(f"function '{function_name}' arguments not matched with formals", tree=tree)
 			i -= 1
 		
 		# load function address from vtable and jump
 		# object is in $sp + (argument_numbers-1) * 4  
-		print("funcinde", function ,func_index)
 		code += f"""
 			lw $t0, {(arguments_number - 1) * 4}($sp)	# t0: object
 			
@@ -591,8 +588,6 @@ class Cgen(Interpreter):
 		
 
 		vtable_size = class_.get_vtable_size()
-
-		print("vtable size", vtable_size)
 		
 		class_init_codes += f"""
 		# class {class_.name} vtable init
@@ -661,13 +656,9 @@ class Cgen(Interpreter):
 
 
 	def field(self, tree):
-		# TODO access mode
-
 		access_mode = self.visit(tree.children[0])
 		
-		# if access_mode == '' or access_mode == 'public':
 		return self.visit(tree.children[1])
-		
 
 
 	def access_mode(self, tree):
@@ -696,9 +687,7 @@ class Cgen(Interpreter):
 		#			 			 ------------
 		
 		object_size = class_.get_object_size() + 1
-
-		print("object size", object_size)
-
+		
 		code = f"""
 		# new object (new_ident)
 		
