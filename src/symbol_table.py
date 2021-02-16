@@ -33,23 +33,13 @@ class Type():
 	
 	def are_equal_with_upcast(self, type2):
 		# return true if self can upcast to type2
-		if self.name != type2.name:
-			return False
-		if self.arr_type and not type2.arr_type or\
-			not self.arr_type and type2.arr_type:
-			return False
-
-		if self.class_ref and not type2.class_ref or\
-			not self.class_ref and type2.class_ref:
-			return False
-		
-		if self.class_ref and not self.class_ref.can_upcast_to(type2.class_ref):
-			return False
-		
 		if self.arr_type:
-			return self.arr_type.are_equal(type2.arr_type)
-		
-		return True
+			return self.are_equal(type2)
+
+		if self.class_ref and self.class_ref.can_upcast_to(type2.class_ref):
+			return True
+
+		return self.name == type2.name
 
 
 	def __str__(self) -> str:
@@ -100,7 +90,27 @@ class Class():
 		self.access_modes = {}
 		self.parent = parent
 		self.set_fields(member_data, member_functions)
+
+	def get_access_mode(self, name):
+		if name in self.access_modes:
+			return self.access_modes[name]
+		
+		if self.parent:
+			return self.parent.get_access_mode(name)
 	
+	def get_object_size(self): # vtable not included
+		size = len(self.member_data)
+		if self.parent:
+			size += self.parent.get_object_size()
+		return size
+
+
+	def get_vtable_size(self): # vtable not included
+		size = len(self.member_functions)
+		if self.parent:
+			size += self.parent.get_vtable_size()
+		return size
+			
 
 	def can_upcast_to(self, class2):
 		# check if self can upcat to class2

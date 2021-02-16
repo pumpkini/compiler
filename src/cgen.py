@@ -324,7 +324,8 @@ class Cgen(Interpreter):
 				while len(stack) > stack_size_initial:
 					formal = function.formals[i]
 					arg = stack.pop()
-					if arg.type_.name != formal.type_.name:
+					print("PPPP", arg.type_, formal.type_)
+					if not arg.type_.are_equal_with_upcast(formal.type_):
 						raise SemanticError(f"function '{function_name}' arguments not matched with formals", tree=tree)
 					i -= 1
 				
@@ -378,7 +379,7 @@ class Cgen(Interpreter):
 		while len(stack) > stack_size_initial:
 			formal = function.formals[i]
 			arg = stack.pop()
-			if arg.type_.name != formal.type_.name:
+			if not arg.type_.are_equal_with_upcast(formal.type_):
 				raise SemanticError(f"function {function_name} arguments not matched with formals", tree=tree)
 			i -= 1
 		
@@ -442,7 +443,7 @@ class Cgen(Interpreter):
 		if len(class_stack) > 0:
 			current_scope_class = class_stack[-1]
 		
-		access_mode = class_.access_modes[function_name]
+		access_mode = class_.get_access_mode(function_name)
 
 		if access_mode == 'private' and (not current_scope_class or class_.name != current_scope_class.name) or\
 		 access_mode == 'protected' and (not current_scope_class or not current_scope_class.can_upcast_to(class_)):
@@ -474,13 +475,14 @@ class Cgen(Interpreter):
 		while len(stack) > stack_size_initial:
 			formal = function.formals[i]
 			arg = stack.pop()
-			if arg.type_.name != formal.type_.name:
+			print("ffff", arg, formal, arg.type_.are_equal_with_upcast(formal.type_))
+			if not arg.type_.are_equal_with_upcast(formal.type_):
 				raise SemanticError(f"function '{function_name}' arguments not matched with formals", tree=tree)
 			i -= 1
 		
 		# load function address from vtable and jump
 		# object is in $sp + (argument_numbers-1) * 4  
-
+		print("funcinde", function ,func_index)
 		code += f"""
 			lw $t0, {(arguments_number - 1) * 4}($sp)	# t0: object
 			
@@ -505,9 +507,10 @@ class Cgen(Interpreter):
 			sw $v0, -4($sp)
 			addi $sp, $sp, -4
 			"""	
+			stack.append(Variable(type_=function.return_type))
 		
-		# TODO do we need to add to mips stack too if return type is void?
-		stack.append(Variable(type_=function.return_type))
+			# TODO do we need to add if return type is void?
+		
 		
 		return code
 
@@ -551,11 +554,6 @@ class Cgen(Interpreter):
 		
 		# TODO extends
 		# TODO implements
-		# TODO access modes
-
-		# TODO varibale without 'this' won't work
-		# TODO make sure new object has been called before accessing an object fields
-
 		
 		class_name = tree.children[1].value
 		class_ = tree.symbol_table.find_type(class_name).class_ref
@@ -592,7 +590,9 @@ class Cgen(Interpreter):
 		#			  ----------
 		
 
-		vtable_size = len(class_.member_functions)
+		vtable_size = class_.get_vtable_size()
+
+		print("vtable size", vtable_size)
 		
 		class_init_codes += f"""
 		# class {class_.name} vtable init
@@ -606,17 +606,19 @@ class Cgen(Interpreter):
 
 		""".replace("\t\t", "\t")
 
-		ind = 0
-		for f in class_.member_functions.values():
-			func_label = f.label
+		now_class = class_
+		while now_class:
+			for f in now_class.member_functions.values():
+				func_label = f.label
+				_, index = now_class.get_func_and_index(f.name)
+				
+				# store function address in vtable
+				class_init_codes += f"""
+				la $t0, {func_label}
+				sw $t0, {index * 4}($s0)
+				""".replace("\t\t", "")
 			
-			# store function address in vtable
-			class_init_codes += f"""
-			la $t0, {func_label}
-			sw $t0, {ind}($s0)
-			""".replace("\t\t", "")
-
-			ind += 4
+			now_class = now_class.parent
 		
 		class_stack.pop()
 
@@ -658,7 +660,9 @@ class Cgen(Interpreter):
 		# 			 			|   ...		 |
 		#			 			 ------------
 		
-		object_size = len(class_.member_data) + 1
+		object_size = class_.get_object_size() + 1
+
+		print("object size", object_size)
 
 		code = f"""
 		# new object (new_ident)
@@ -717,7 +721,7 @@ class Cgen(Interpreter):
 			current_scope_class = class_stack[-1]
 		
 
-		access_mode = class_.access_modes[field_name]
+		access_mode = class_.get_access_mode(field_name)
 
 		if access_mode == 'private' and (not current_scope_class or class_.name != current_scope_class.name) or\
 		 access_mode == 'protected' and (not current_scope_class or  not current_scope_class.can_upcast_to(class_)):
