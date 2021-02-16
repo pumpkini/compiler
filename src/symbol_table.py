@@ -619,7 +619,8 @@ class SymbolTableVisitor(Interpreter):
 		class_name = tree.children[1].value
 
 		parent_name = None
-		if isinstance(tree.children[2], Token) and tree.children[2].value == 'extends':
+
+		if len(tree.children) > 2 and isinstance(tree.children[2], Token) and tree.children[2].value == 'extends':
 			parent_name = tree.children[3].value
 
 
