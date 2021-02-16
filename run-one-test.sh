@@ -7,14 +7,14 @@ fi
 
 
 OUTPUT_DIRECTORY="out/"
-TEST_DIRECTORY="tests/"
+TEST_DIRECTORY="new_tests/"
 REPORT_DIRECTORY="report/"
 SOURCE_DIRECTORY="src/"
 
 mkdir -p $OUTPUT_DIRECTORY
 mkdir -p $REPORT_DIRECTORY
 
-cd ./tests
+cd $TEST_DIRECTORY
 
 test_number=$1
 

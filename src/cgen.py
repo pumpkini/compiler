@@ -2344,7 +2344,7 @@ def generate_tac(code):
 
 	try:
 		tree = parser.parse(code)
-		print(tree.pretty())
+		# print(tree.pretty())
 	except ParseError as e:
 		# TODO
 		print(e)
@@ -2392,7 +2392,7 @@ if __name__ == "__main__":
 	with open(inputfile, "r") as input_file:
 		code = input_file.read()
 	code = generate_tac(code)
-	print("#### code ")
+	# print("#### code ")
 	#print(code)
 
 		
