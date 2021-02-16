@@ -268,7 +268,6 @@ class SymbolTable():
 
 	def add_var(self, var:Variable, tree=None):
 		if self.find_var(var.name, error=False, depth_one=True):
-			print(tree.symbol_table, var.name)
 			raise SemanticError('Variable already exist in scope', tree=tree)
 		
 		self.variables[var.name] = var
@@ -473,12 +472,11 @@ class SymbolTableVisitor(Interpreter):
 		stack.append(var)
 
 
-	# def array_type(self, tree):
-	# 	tree.children[0].symbol_table = tree.symbol_table
-	# 	self.visit(tree.children[0])
-	# 	mem_type = stack.pop().name
-	# 	print(mem_type)
-	# 	stack.append(Type("array",arr_type = mem_type))
+	def array_type(self, tree):
+		tree.children[0].symbol_table = tree.symbol_table
+		self.visit(tree.children[0])
+		mem_type = stack.pop()
+		stack.append(Type("array",arr_type = mem_type))
 
 
 	def if_stmt(self, tree):

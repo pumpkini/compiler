@@ -616,21 +616,21 @@ class Cgen(Interpreter):
 					if func.name == f.name:
 						for i in range(len(func.formals) - 1) :
 							if func.formals[i+1].type_.name != f.formals[i+1].type_.name:
-								print(f.formals[i+1].type_.name, " ", func.formals[i+1].type_.name)
+								# print(f.formals[i+1].type_.name, " ", func.formals[i+1].type_.name)
 								raise SemanticError("override function should have same arguments", tree=tree)
 							elif func.formals[i+1].type_.arr_type.are_equal(func.formals[i+1].type_.arr_type):
-								print(func.formals[i+1].type_.name, f.formals[i+1].type_.name)
-								print(func.formals[i+1].type_.arr_type, f.formals[i+1].type_.arr_type)
+								# print(func.formals[i+1].type_.name, f.formals[i+1].type_.name)
+								# print(func.formals[i+1].type_.arr_type, f.formals[i+1].type_.arr_type)
 								raise SemanticError("override function should have same arguments", tree=tree)
-							print(func.formals[i + 1].type_.arr_type, f.formals[i+1].type_.arr_type)
+							# print(func.formals[i + 1].type_.arr_type, f.formals[i+1].type_.arr_type)
 						if func.return_type.name != f.return_type.name:
-							print("different return types :", func.return_type.name, f.return_type.name)
+							# print("different return types :", func.return_type.name, f.return_type.name)
 							raise SemanticError("override function should have same return types", tree=tree)
 				all_funcs.append(f)
 				func_label = f.label
 				_, index = now_class.get_func_and_index(f.name)
 
-				print("function  nnn ", f.name, index)
+				# print("function  nnn ", f.name, index)
 				
 				# store function address in vtable
 				class_init_codes += f"""
