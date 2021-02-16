@@ -1446,8 +1446,7 @@ class Cgen(Interpreter):
 				### mod
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
-				div $t1, $t0
-				mfhi $t2
+				rem $t2, $t1, $t0
 				sw $t2, 4($sp) 
 				addi $sp, $sp, 4
 				""".replace("\t\t\t\t", "\t")
