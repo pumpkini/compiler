@@ -5,11 +5,12 @@ from lark import Tree
 
 
 class Type():
-	def __init__(self, name, size=None, arr_type=None, class_ref=None):
+	def __init__(self, name, size=None, arr_type=None, class_ref=None, interface_ref=None):
 		self.name = name
 		self.size = size
 		self.arr_type = arr_type
 		self.class_ref = class_ref
+		self.interface_ref = interface_ref;
 
 	def are_equal(self, type2):
 		if self.name != type2.name:
@@ -78,7 +79,26 @@ class Function():
 
 	def __str__(self) -> str:
 		return f"<F-{self.name}-{self.return_type}-{[a.__str__() for a in self.formals]}>"
-	
+
+class Interface():
+	def __init__(self, name, address, member_functions={}):
+		self.name = name
+		self.address = address
+		self.member_functions = {}
+		self.prototypes = {}
+		self.set_prototypes = {member_functions}
+
+	def get_vtable_size(self): # vtable not included
+		size = len(self.member_functions)
+		if self.parent:
+			size += self.parent.get_vtable_size()
+		return size
+
+	def set_prototypes(self, member_functions):
+		self.member_functions = member_functions
+		self.prototypes = {**member_functions}
+
+
 
 class Class():
 	def __init__(self, name, address, member_data= {}, member_functions={}, parent=None):
@@ -89,6 +109,7 @@ class Class():
 		self.fields = {}
 		self.access_modes = {}
 		self.parent = parent
+		self.interfaces = {}
 		self.set_fields(member_data, member_functions)
 
 	def get_access_mode(self, name):
@@ -179,7 +200,7 @@ class Class():
 			# \n\tdata: {[v.__str__() for v in self.member_data.values()]}\
 			# \n\tmethods: {[v.__str__() for v in self.member_functions.values()]}>"
 
-
+interface_stack = []
 class_stack = []
 currect_access_mode = None
 
@@ -210,18 +231,9 @@ class SymbolTable():
 		self.variables = {}     # dict {name: Variable}
 		self.functions = {}     # dict {name: Function}
 		self.types = {}			# dict {name: Type}
+		self.prototypes = {}
 		self.parent = parent
 		SymbolTable.symbol_tables.append(self)
-
-
-	# def find_class(self, name, tree=None, error=True):
-	# 	if name in self.classes:
-	# 		return self.classes[name]
-	# 	if self.parent:
-	# 		return self.parent.find_classes(name, tree, error)
-	# 	if error:
-	# 		raise SemanticError(f'Class {name} not found in this scope', tree=tree)
-	# 	return None
 
 
 	def find_var(self, name, tree=None, error=True, depth_one=False):
@@ -562,6 +574,38 @@ class SymbolTableVisitor(Interpreter):
 		body_symbol_table = SymbolTable(parent=expr_symbol_table)
 		tree.children[body_num].symbol_table = body_symbol_table
 		self.visit(tree.children[body_num])
+
+	def interface_decl(self, tree):
+		# INTERFACE IDENT "{" prototype* "}"
+		interface_name = tree.children[1].value
+		interface = Interface(
+			name=interface_name,
+			address=IncDataPointer(4),
+		)
+		type_ = Type(
+			name=interface_name,
+			interface_ref = interface,
+			size=4
+		)
+		tree.symbol_table.add_type(type_)
+
+		interface_symbol_table = SymbolTable(parent=tree.symbol_table)
+
+		interface_stack.append(interface)
+		for subtree in tree.children:
+			if isinstance(subtree, Tree) and subtree.data == 'prototype':
+				subtree.symbol_table = interface_symbol_table
+				initial_stack_len = len(stack)
+				self.visit(subtree)
+				while initial_stack_len < len(stack):
+					stack.pop()
+
+		interface_stack.pop()
+		interface.set_prototypes(
+			member_functions = interface_symbol_table.prototypes
+		)
+
+
 
 
 	def class_decl(self, tree):
