@@ -1415,6 +1415,7 @@ class Cgen(Interpreter):
 				### div int
 				lw $t0, 0($sp)
 				lw $t1, 4($sp)
+				beq $t1, 0, runtimeError
 				div $t2, $t1, $t0
 				sw $t2, 4($sp) 
 				addi $sp, $sp, 4
