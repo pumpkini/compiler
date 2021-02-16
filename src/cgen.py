@@ -1426,6 +1426,9 @@ class Cgen(Interpreter):
 				### div double
 				l.s $f2, 0($sp)
 				l.s $f4, 4($sp)
+				cvt.w.s $f8, $f2
+				mfc1 $t0, $f8
+				beq $t0, $zero, runtimeError
 				div.s $f6, $f4, $f2
 				s.s $f6, 4($sp) 
 				addi $sp, $sp, 4
