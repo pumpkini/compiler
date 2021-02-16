@@ -187,16 +187,6 @@ class SymbolTable():
 
 		self.types[type_.name] = type_
 
-	#def add_arr_type(self, type_:Array_Type, tree= None):
-	#	if self.find_type(type_.)
-
-	
-	# # TODO do we need this?
-	# def add_class(self, class_:Class, tree=None):
-	# 	if self.find_var(class_.name, error=False):
-	# 		raise SemanticError('Class already exist in scope', tree=tree)
-		
-	# 	self.classes[class_.name] = class_
 
 
 	def get_index(self):
@@ -493,6 +483,11 @@ class SymbolTableVisitor(Interpreter):
 				self.visit(subtree)
 				while initial_stack_len < len(stack):
 					stack.pop()
+			elif isinstance(subtree, Tree) and subtree.data == 'IDENT':
+				subtree.symbol_table = class_symbol_table
+				class_type = self.visit(subtree)
+				class_symbol_table.variables.update(class_type.member_data)
+				class_symbol_table.functions.update(class_type.member_functions)
 			else:
 				break
 
