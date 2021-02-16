@@ -606,20 +606,28 @@ class Cgen(Interpreter):
 
 		""".replace("\t\t", "\t")
 
+
+		# Add functions and parent functions and parent parent functions and ... to vtable
 		now_class = class_
+		all_parent_classes = []
 		while now_class:
+			all_parent_classes.append(now_class)
+			now_class = now_class.parent
+
+
+		for now_class in all_parent_classes[::-1]:	# we need to add parent code first in order for override to work
 			for f in now_class.member_functions.values():
 				func_label = f.label
 				_, index = now_class.get_func_and_index(f.name)
+
+				print("function  nnn ", f.name, index)
 				
 				# store function address in vtable
 				class_init_codes += f"""
 				la $t0, {func_label}
 				sw $t0, {index * 4}($s0)
 				""".replace("\t\t", "")
-			
-			now_class = now_class.parent
-		
+					
 		class_stack.pop()
 
 		return code
