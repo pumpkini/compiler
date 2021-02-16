@@ -729,3 +729,27 @@ class TypeVisitor(Interpreter):
 			if isinstance(child, Tree):
 				self.visit(child)
 		
+
+	def function_decl(self, tree):
+
+
+		# type
+		
+		type_ = Type("void")
+		if isinstance(tree.children[0], Tree):
+			type_ = self.visit(tree.children[0])
+		
+
+		# name
+		func_name = tree.children[1].value
+		function = tree.symbol_table.find_func(func_name, tree=tree)
+
+		function.return_type = type_
+
+				
+		for child in tree.children:
+			if isinstance(child, Tree):
+				self.visit(child)
+		
+
+	

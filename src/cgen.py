@@ -204,10 +204,12 @@ class Cgen(Interpreter):
 		type_ = Type("void")
 		if isinstance(tree.children[0], Tree):
 			type_ = self.visit(tree.children[0])
-
+		
 		# name
 		func_name = tree.children[1].value
 		function = tree.symbol_table.find_func(func_name, tree=tree)
+
+	
 
 		# formals
 		self.visit(tree.children[2])
@@ -504,7 +506,7 @@ class Cgen(Interpreter):
 			sw $v0, -4($sp)
 			addi $sp, $sp, -4
 			"""	
-			stack.append(Variable(type_=function.return_type))
+		stack.append(Variable(type_=function.return_type))
 		
 			# TODO do we need to add if return type is void?
 		
