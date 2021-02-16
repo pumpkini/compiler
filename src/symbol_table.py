@@ -236,8 +236,6 @@ class SymbolTable():
 
 
 	def find_var(self, name, tree=None, error=True, depth_one=False):
-		print(None if not tree else tree.symbol_table, "lets find ", name)
-
 		if name in self.variables:
 			return self.variables[name]
 		if self.parent and not depth_one:

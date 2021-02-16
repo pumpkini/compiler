@@ -687,7 +687,7 @@ class Cgen(Interpreter):
 		#			 			 ------------
 		
 		object_size = class_.get_object_size() + 1
-		
+
 		code = f"""
 		# new object (new_ident)
 		
@@ -842,42 +842,11 @@ class Cgen(Interpreter):
 				lw $t1, 4($sp) # load address from stack
 				addi $sp, $sp, 8
 				sw $t0, 0($t1)
+				addi $sp, $sp, -4
+				sw $t0, 0($sp)
 		""".replace("\t\t\t\t\t","\t")
 
-		# if lvalue_var.type_.name == 'int' or\
-		# 	 lvalue_var.type_.name == 'bool':
-		# 	code += f"""
-		# 		### store
-		# 		lw $t0, 0($sp)
-		# 		addi $sp, $sp, 4
-		# 		sw $t0, {lvalue_var.address}($gp) 	
-		# 		""".replace("\t\t\t\t","\t")
-
-		# elif lvalue_var.type_.name == 'double':
-		# 	code += f"""
-		# 		### store
-		# 		l.s $f2, 0($sp)
-		# 		addi $sp, $sp, 4
-		# 		s.s $f2, {lvalue_var.address}($gp) 	
-		# 		""".replace("\t\t\t\t","\t")
-
-		# elif lvalue_var.type_.name == 'string':
-		# 	code += f"""
-		# 		### store
-		# 		lw $t0, 0($sp)
-		# 		addi $sp, $sp, 4
-		# 		sw $t0, {lvalue_var.address}($gp) 	
-		# 		""".replace("\t\t\t\t","\t")
-			
-		# 	lvalue_var.size = expr_var.size
-
-		# assume assignment expression push a true in stack
-		code += f"""
-			li $t0, 1
-			sw $t0, -4($sp) 
-			addi $sp, $sp, -4
-		"""
-		stack.append(Variable(type_=tree.symbol_table.find_type('bool', tree=tree)))
+		stack.append(lvalue_var)
 
 		return code
 
