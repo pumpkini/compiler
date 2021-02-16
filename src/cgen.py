@@ -614,9 +614,16 @@ class Cgen(Interpreter):
 			all_parent_classes.append(now_class)
 			now_class = now_class.parent
 
-
+		all_funcs = []
 		for now_class in all_parent_classes[::-1]:	# we need to add parent code first in order for override to work
 			for f in now_class.member_functions.values():
+				for func in all_funcs:
+					print("i'm here")
+					if func.name == f.name:
+						for i in range(len(func.formals)) :
+							if func.formals[i].type_.name != f.formals[i].type_.name:
+								raise SemanticError("override function should have same arguments", tree=tree)
+				all_funcs.append(f)
 				func_label = f.label
 				_, index = now_class.get_func_and_index(f.name)
 
