@@ -273,14 +273,14 @@ class SymbolTable():
 		
 		self.variables[var.name] = var
 
-	def add_func(self, func:Function, tree=None, depth_one=True):
-		if self.find_func(func.name, error=False):
+	def add_func(self, func:Function, tree=None):
+		if self.find_func(func.name, error=False, depth_one=True):
 			raise SemanticError('Function already exist in scope', tree=tree)
 
 		self.functions[func.name] = func
 
-	def add_type(self, type_:Type, tree=None, depth_one=True):
-		if self.find_type(type_.name, error=False):
+	def add_type(self, type_:Type, tree=None):
+		if self.find_type(type_.name, error=False, depth_one=True):
 			raise SemanticError('Type already  exist in scope', tree=tree)
 
 		self.types[type_.name] = type_

@@ -21,3 +21,10 @@ t143-cond-9
 t162-loop-11
 t163-loop-12
 t164-loop-13
+t008-preview-8
+t010-input-1
+t027-output-18
+t028-output-19
+t055-integer-17
+t057-integer-19
+t058-integer-20
