@@ -619,9 +619,7 @@ class Cgen(Interpreter):
 			for f in now_class.member_functions.values():
 				for func in all_funcs:
 					if func.name == f.name:
-						print("here", now_class, f.name)
 						for i in range(len(func.formals) - 1) :
-							print("hello")
 							if func.formals[i+1].type_.name != f.formals[i+1].type_.name:
 								print(f.formals[i+1].type_.name, " ", func.formals[i+1].type_.name)
 								raise SemanticError("override function should have same arguments", tree=tree)
