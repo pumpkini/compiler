@@ -135,7 +135,6 @@ class Class():
 
 	def can_upcast_to(self, class2):
 		# check if self can upcat to class2
-		print("CCC", self, class2)
 		if self.name == class2.name:
 			return True
 		
@@ -243,7 +242,6 @@ class SymbolTable():
 			return self.parent.find_var(name, tree, error)
 
 		if error:
-			print(tree.symbol_table)
 			raise SemanticError(f'Variable {name} not found in this scope', tree=tree)
 		return None
 
@@ -257,10 +255,10 @@ class SymbolTable():
 			raise SemanticError(f'Function {name} not found in this scope', tree=tree)
 		return None
 
-	def find_type(self, name, tree=None, error=True):
+	def find_type(self, name, tree=None, error=True, depth_one=False):
 		if name in self.types:
 			return self.types[name]
-		if self.parent:
+		if self.parent and not depth_one:
 			return self.parent.find_type(name, tree, error)
 
 		if error:
@@ -269,19 +267,20 @@ class SymbolTable():
 
 
 	def add_var(self, var:Variable, tree=None):
-		if self.find_var(var.name, error=False):
+		if self.find_var(var.name, error=False, depth_one=True):
+			print(tree.symbol_table, var.name)
 			raise SemanticError('Variable already exist in scope', tree=tree)
 		
 		self.variables[var.name] = var
 
 	def add_func(self, func:Function, tree=None):
-		if self.find_func(func.name, error=False):
+		if self.find_func(func.name, error=False, depth_one=True):
 			raise SemanticError('Function already exist in scope', tree=tree)
 
 		self.functions[func.name] = func
 
 	def add_type(self, type_:Type, tree=None):
-		if self.find_type(type_.name, error=False):
+		if self.find_type(type_.name, error=False, depth_one=True):
 			raise SemanticError('Type already  exist in scope', tree=tree)
 
 		self.types[type_.name] = type_
