@@ -1943,6 +1943,8 @@ class Cgen(Interpreter):
 				li.s $f4, -0.5
 				li.s $f6, 0.0
 				l.s $f0, 0($sp)
+				c.eq.s $f0, $f4
+				bc1t dtoi_half_{l1}
 				c.lt.s $f0, $f6
 				bc1t dtoi_{l1}
 				li.s $f4, 0.5
@@ -1950,6 +1952,11 @@ class Cgen(Interpreter):
 				add.s $f0, $f0, $f4
 				cvt.w.s $f2, $f0
 				s.s $f2, 0($sp)
+				j end_dtoi_{l1}
+			dtoi_half_{l1}:
+				li.s $f2, 0.0
+				s.s $f2, 0($sp)
+			end_dtoi_{l1}:
 				""".replace("\t\t\t", "")
 		stack.append(Variable(type_=tree.symbol_table.find_type('int', tree=tree)))
 		return code
