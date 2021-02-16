@@ -293,6 +293,11 @@ class Cgen(Interpreter):
 			function, func_index = class_.get_func_and_index(function_name, error=False)
 			
 			if function: # use 'this'
+
+				# TODO do we need to check access here too?
+				# without inheritance -> No 
+				# check after inheritace
+				
 				this_variable = tree.symbol_table.find_var('this', tree=tree,)
 
 				stack_size_initial = len(stack)
@@ -426,11 +431,23 @@ class Cgen(Interpreter):
 				else:
 					raise SemanticError("No such function available for array", tree=tree)
 			
-			print(variable)
 			raise SemanticError("Method call only allowed on objects and array", tree=tree)
 
 		
 		function, func_index = class_.get_func_and_index(function_name, tree=tree)
+
+		
+		# check access
+		current_scope_class = None
+		if len(class_stack) > 0:
+			current_scope_class = class_stack[-1]
+		
+		access_mode = class_.access_modes[function_name]
+
+		if access_mode == 'private' and (not current_scope_class or class_.number != current_scope_class.number) or\
+		 access_mode == 'protected' and (not current_scope_class or  class_.number % current_scope_class.number):
+			raise SemanticError("You don't have access to method", tree=tree)
+
 
 		stack_size_initial = len(stack)
 
@@ -611,8 +628,9 @@ class Cgen(Interpreter):
 
 		access_mode = self.visit(tree.children[0])
 		
-		if access_mode == '' or access_mode == 'public':
-			return self.visit(tree.children[1])
+		# if access_mode == '' or access_mode == 'public':
+		return self.visit(tree.children[1])
+		
 
 
 	def access_mode(self, tree):
@@ -687,14 +705,24 @@ class Cgen(Interpreter):
 		class_ = variable.type_.class_ref
 
 		if not class_:
-			raise SemanticError("dot(.) can only used with classes", tree=tree)
+			raise SemanticError("dot(.) for fields can only used with classes", tree=tree)
 
 		
 		field_name = tree.children[1].value
 		class_var, index = class_.get_var_and_index(field_name)
 		
+		# check access
+		current_scope_class = None
+		if len(class_stack) > 0:
+			current_scope_class = class_stack[-1]
 		
-		
+
+		access_mode = class_.access_modes[field_name]
+
+		if access_mode == 'private' and (not current_scope_class or class_.number != current_scope_class.number) or\
+		 access_mode == 'protected' and (not current_scope_class or  class_.number % current_scope_class.number):
+			raise SemanticError("You don't have access to field", tree=tree)
+
 
 		code = f"""
 		# l_value_class_field

@@ -69,12 +69,14 @@ class Function():
 	
 
 class Class():
-	def __init__(self, name, address, member_data= {}, member_functions={}):
+	def __init__(self, number, name, address, member_data= {}, member_functions={}):
 		self.name = name
 		self.address = address
 		self.member_data = {}
 		self.member_functions = {}
 		self.fields = {}
+		self.access_modes = {}
+		self.number = number
 		self.set_fields(member_data, member_functions)
 	
 	def set_fields(self, member_data, member_functions):
@@ -114,6 +116,26 @@ class Class():
 
 
 class_stack = []
+currect_access_mode = None
+
+
+last_prime = 1
+def get_next_prime():
+	global last_prime
+
+
+	ok = False
+	while not ok:
+		ok = True
+		last_prime += 1
+		for i in range(2, last_prime):
+			if last_prime % i == 0:
+				ok = False
+	
+	return last_prime
+
+
+
 
 class SymbolTable():
 	symbol_tables = []
@@ -275,6 +297,12 @@ class SymbolTableVisitor(Interpreter):
 		if len(class_stack) > 0:
 			function_class = class_stack[-1]
 
+		# access
+		global currect_access_mode
+		access_mode = currect_access_mode
+		if currect_access_mode:
+			currect_access_mode = None
+		
 
 		# type 
 		type_ = Type("void") # void
@@ -315,6 +343,11 @@ class SymbolTableVisitor(Interpreter):
 				)
 			formals = [this, *formals]
 			formals_symbol_table.add_var(this)
+
+
+			# add access_mode
+			function_class.access_modes[func_name] = access_mode
+
 		
 
 		# set body scope
@@ -337,12 +370,31 @@ class SymbolTableVisitor(Interpreter):
 	
 
 	def variable(self, tree):
+		
+		# check if variable is a member data
+		variable_class = None
+		if len(class_stack) > 0:
+			variable_class = class_stack[-1]
+		
+		# access
+		global currect_access_mode
+		access_mode = currect_access_mode
+		if currect_access_mode:
+			currect_access_mode = None
+		
+
 		tree.children[0].symbol_table = tree.symbol_table
 		self.visit(tree.children[0])
 		type_ = stack.pop()
 
 		var_name = tree.children[1].value
 		
+
+		if variable_class:
+			# add access_mode
+			variable_class.access_modes[var_name] = access_mode
+
+
 		var = Variable(
 				name=var_name,
 				type_=type_,
@@ -469,9 +521,11 @@ class SymbolTableVisitor(Interpreter):
 		class_name = tree.children[1].value
 
 		class_ = Class(
+			number = get_next_prime(),
 			name= class_name,
 			address= IncDataPointer(4)	# this memory will be used for vtable
 		)
+		print(class_.number)
 
 		type_ = Type(
 			name=class_name,
@@ -504,6 +558,24 @@ class SymbolTableVisitor(Interpreter):
 		)
 
 		
+	def field(self, tree):
+		# TODO access mode
+		tree.children[0].symbol_table = tree.symbol_table
+		tree.children[1].symbol_table = tree.symbol_table
+
+		access_mode = self.visit(tree.children[0])
+		
+		global currect_access_mode
+		currect_access_mode = access_mode
+
+		self.visit(tree.children[1])
+		
+
+	def access_mode(self, tree):
+		if tree.children:
+			return tree.children[0].value
+		return 'public'
+
 
 
 class TypeVisitor(Interpreter):
