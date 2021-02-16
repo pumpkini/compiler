@@ -236,6 +236,8 @@ class SymbolTable():
 
 
 	def find_var(self, name, tree=None, error=True, depth_one=False):
+		print(None if not tree else tree.symbol_table, "lets find ", name)
+
 		if name in self.variables:
 			return self.variables[name]
 		if self.parent and not depth_one:
@@ -675,6 +677,15 @@ class SymbolTableVisitor(Interpreter):
 		if tree.children:
 			return tree.children[0].value
 		return 'public'
+
+	
+
+	def statement_block(self, tree):
+		new_symbol_table = SymbolTable(parent=tree.symbol_table)
+		for subtree in tree.children:
+			if isinstance(subtree, Tree):
+				subtree.symbol_table = new_symbol_table
+				self.visit(subtree)
 
 
 

@@ -25,12 +25,11 @@ cd $TEST_DIRECTORY
 prefix="t" ;
 dirlist=(`ls ${prefix}*.d`) ;
 
-rm wrong-tests.txt
-touch wrong-tests.txt
-
 NUMBER_OF_PASSED=0
 NUMBER_OF_FAILED=0
 cd ../
+
+echo ' ' > wrong-tests.txt
 for filelist in ${dirlist[*]}
 do
     filename=`echo $filelist | cut -d'.' -f1`;
