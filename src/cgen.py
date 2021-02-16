@@ -646,7 +646,7 @@ class Cgen(Interpreter):
 				for val in all_values:
 					if val.name == v.name:
 						raise SemanticError("variables can't be overriden", tree=tree)
-				all_funcs.append(v)
+				all_values.append(v)
 			
 
 
