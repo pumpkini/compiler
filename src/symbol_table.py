@@ -138,7 +138,10 @@ class Class():
 		if name in self.member_functions:
 			index = list(self.member_functions.keys()).index(name)
 			return (self.member_functions[name], self.get_func_index_offset() + index)
-
+		
+		if self.parent:
+			return (self.parent.get_func_and_index(name))
+		
 		if error:
 			raise SemanticError(f'Function {name} not found in class {self.name}', tree=tree)
 		return (None, None)
@@ -147,6 +150,9 @@ class Class():
 		if name in self.member_data:
 			index = list(self.member_data.keys()).index(name)
 			return (self.member_data[name], self.get_var_index_offset() + index)
+		
+		if self.parent:
+			return (self.parent.get_var_and_index(name))
 
 		if error:
 			raise SemanticError(f'Variable {name} not found in class {self.name}', tree=tree)
