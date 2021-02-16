@@ -444,8 +444,8 @@ class Cgen(Interpreter):
 		
 		access_mode = class_.access_modes[function_name]
 
-		if access_mode == 'private' and (not current_scope_class or class_.number != current_scope_class.number) or\
-		 access_mode == 'protected' and (not current_scope_class or  class_.number % current_scope_class.number):
+		if access_mode == 'private' and (not current_scope_class or class_.name != current_scope_class.name) or\
+		 access_mode == 'protected' and (not current_scope_class or not current_scope_class.can_upcast_to(class_)):
 			raise SemanticError("You don't have access to method", tree=tree)
 
 
@@ -719,8 +719,8 @@ class Cgen(Interpreter):
 
 		access_mode = class_.access_modes[field_name]
 
-		if access_mode == 'private' and (not current_scope_class or class_.number != current_scope_class.number) or\
-		 access_mode == 'protected' and (not current_scope_class or  class_.number % current_scope_class.number):
+		if access_mode == 'private' and (not current_scope_class or class_.name != current_scope_class.name) or\
+		 access_mode == 'protected' and (not current_scope_class or  not current_scope_class.can_upcast_to(class_)):
 			raise SemanticError("You don't have access to field", tree=tree)
 
 
