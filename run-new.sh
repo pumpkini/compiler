@@ -1,6 +1,6 @@
 #!/bin/bash
-subtasks=( "G1" "G2" "G3" "tests" "tests-ours" )
-scores=( 10 20 30 60 40)
+subtasks=( "G1" "G2" "G3" )
+scores=( 10 20 30 )
 mkdir -p out
 mkdir -p report
 cd ./tests
@@ -10,14 +10,8 @@ dirlist=(`ls`) ;
 OUTPUT_DIRECTORY="out/"
 TEST_DIRECTORY="tests/"
 REPORT_DIRECTORY="report/"
-SOURCE_DIRECTORY="src/"
 
 cd ../
-
-rm wrongs
-touch wrongs
-
-
 for folder in ${dirlist[*]}
 do
 	NUMBER_OF_PASSED=0
@@ -41,9 +35,9 @@ do
 		report_filename="$filename.report.txt"
 		echo "Running Test $filename -------------------------------------"
 		if command -v python3; then
-			python3 "$SOURCE_DIRECTORY/main.py" -i "$TEST_DIRECTORY/$folder/$filelist" -o "$OUTPUT_DIRECTORY/$folder/$output_asm"
+			python3 main.py -i "$folder/$filelist" -o "$folder/$output_asm"
 		else
-			python "$SOURCE_DIRECTORY/main.py" -i "$TEST_DIRECTORY/$folder/$filelist" -o "$OUTPUT_DIRECTORY/$folder/$output_asm"
+			python main.py -i "$folder/$filelist" -o "$folder/$output_asm"
 		fi
 		if [ $? -eq 0 ]; then
 			echo "MIPS Generated Successfuly!"
@@ -61,14 +55,12 @@ do
 			else
 				((NUMBER_OF_FAILED++))
 				echo "---- test failed !"
-				echo "$folder/$filename" >> wrongs
 			echo
 			fi
 			fi 
 		else
 			echo "Code did not execute successfuly!"
 			((NUMBER_OF_FAILED++))
-			echo "$folder/$filename" >> wrongs
 		fi
 		
 	done
@@ -81,9 +73,9 @@ do
 	for (( i=0; i<$len; i++ ))
 	do
 		if [[ "${subtasks[$i]}" == "$folder" ]]; then
-			subtask_score=$(( $NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED) * ${scores[$i]} ));
+			subtask_score=$(( ${scores[$i]} * $NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED) ));
 			echo $subtask_score;
-			(( score+= $NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED) * ${scores[$i]} ));
+			(( score+= ${scores[$i]} * $NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED) ));
 		fi
 	done
 	
