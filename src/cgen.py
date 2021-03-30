@@ -2346,7 +2346,7 @@ def generate_tac(code):
 if __name__ == "__main__":
 	# inputfile = 'example.d'
 	
-	inputfile = '../tmp/in1.d'
+	inputfile = '../tmp/in.d'
 	code = ""
 	with open(inputfile, "r") as input_file:
 		code = input_file.read()
