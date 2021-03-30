@@ -1,6 +1,6 @@
 #!/bin/bash
-subtasks=( "G1" "G2" "G3" "tests" "tests-ours" )
-scores=( 10 20 30 60 40)
+# subtasks=( "G1" "G2" "G3" "tests" "tests-ours" )
+# scores=( 10 20 30 60 40)
 mkdir -p out
 mkdir -p report
 cd ./tests
@@ -76,17 +76,19 @@ do
 	echo "Passed : $NUMBER_OF_PASSED"
 	echo "Failed : $NUMBER_OF_FAILED"
 	
-	echo "Subtask score: "
-	len=${#subtasks[@]}
-	for (( i=0; i<$len; i++ ))
-	do
-		if [[ "${subtasks[$i]}" == "$folder" ]]; then
-			subtask_score=$(( $NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED) * ${scores[$i]} ));
-			echo $subtask_score;
-			(( score+= $NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED) * ${scores[$i]} ));
-		fi
-	done
+	# echo "Subtask score: "
+	# len=${#subtasks[@]}
+	# for (( i=0; i<$len; i++ ))
+	# do
+	# 	if [[ "${subtasks[$i]}" == "$folder" ]]; then
+	# 		subtask_score=$(${scores[$i]}*$NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED));
+	# 		echo $subtask_score;
+	# 		(( score+= ${scores[$i]}*$NUMBER_OF_PASSED/($NUMBER_OF_PASSED + $NUMBER_OF_FAILED)));
+	# 	fi
+	# done
 	
+	((total_passed+=$NUMBER_OF_PASSED))
+	((total_failed+=$NUMBER_OF_FAILED))
 	
 	echo "Subtask $folder done ------------------------------"
 	echo $'\n\n'
@@ -95,5 +97,11 @@ do
 done
 
 echo "Final score: "
-echo "$score"
+# echo "$score"
+
+
+echo "Passed : $total_passed"
+echo "Failed : $total_failed"
+	
+
 
