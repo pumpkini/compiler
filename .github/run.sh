@@ -48,7 +48,7 @@ do
 		if [ $? -eq 0 ]; then
 			echo "MIPS Generated Successfuly!"
 		
-		spim -a -f "$OUTPUT_DIRECTORY$folder/$output_asm" < "$TEST_DIRECTORY$folder/$program_input" > "$OUTPUT_DIRECTORY$folder/$output_filename"
+		timeout 10 spim -a -f "$OUTPUT_DIRECTORY$folder/$output_asm" < "$TEST_DIRECTORY$folder/$program_input" > "$OUTPUT_DIRECTORY$folder/$output_filename"
 
 		if [ $? -eq 0 ]; then
 			echo "Code Executed Successfuly!"
@@ -107,3 +107,9 @@ echo "Failed : $total_failed"
 	
 
 cat wrongs
+
+zero=0;
+if [ "$total_failed" -eq "$zero" ]; then
+	exit 0;
+fi
+exit 1;
