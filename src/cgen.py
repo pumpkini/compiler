@@ -2306,8 +2306,8 @@ def generate_tac(code):
 		# print(tree.pretty())
 	except ParseError as e:
 		# TODO
-		print(e)
-		print(e.with_traceback())
+		# print(e)
+		# print(e.with_traceback())
 		return e
 
 	try:
@@ -2322,7 +2322,7 @@ def generate_tac(code):
 		mips_code = Cgen().visit(tree)
 
 	except SemanticError as err:
-		print(err)
+		# print(err)
 		# TODO check
 		mips_code = """
 		.text
